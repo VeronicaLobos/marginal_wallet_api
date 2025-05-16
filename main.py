@@ -1,19 +1,18 @@
-"""
-This file contains the database models for the project.
-
-* I'll be using SQLite to start the project and later migrate to PostgreSQL with Alembic
-* I will use Alembic to manage the migrations later
-* I will use SQLModel (SQLAlchemy + Pydantic) to create the database models
-* I will use enum for the categorical variables
-"""
-
 from typing import List, Optional
-from sqlmodel import Field, Relationship, SQLModel
 from datetime import datetime
 import enum
+from fastapi import FastAPI, Depends
+from sqlmodel import Field, Relationship, Session, SQLModel, create_engine
 
-## Before the tables I need the categorical variables for some of the tables
+#### This section is for the database design and connection
 
+# Define the database URL
+DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/marginal-wallet"
+
+# Create the database engine
+engine = create_engine(DATABASE_URL)
+
+# Define the categorical variables (enums)
 class CategoryType(str, enum.Enum):
     minijob = "Minijob"
     freelance = "Freelance"
@@ -37,16 +36,13 @@ class FrequencyType(str, enum.Enum):
     yearly = "Yearly"
     one_time = "One Time"
 
-## Here are the five tables I need to create for the project
-
+# Define the SQLModel classes (models)
 class User(SQLModel, table=True):
     id: int = Field(primary_key=True)
     name: str = Field(nullable=False, unique=True)
     email: str = Field(nullable=False)
-    # TODO: hash the password before storing it
     password: str
 
-    # One user can have many categories, transactions and planned expenses...
     categories: List["Category"] = Relationship(back_populates="user")
     transactions: List["Transaction"] = Relationship(back_populates="user")
     planned_expenses: List["PlannedExpense"] = Relationship(back_populates="user")
@@ -57,9 +53,7 @@ class Category(SQLModel, table=True):
     category_type: CategoryType = Field(nullable=False)
     Counterparty: str = Field(nullable=False)
 
-    # ...therefore many categories can belong to one user
     user: "User" = Relationship(back_populates="categories")
-    # One category can have many transactions...
     transactions: List["Transaction"] = Relationship(back_populates="category")
 
 class Transaction(SQLModel, table=True):
@@ -71,13 +65,9 @@ class Transaction(SQLModel, table=True):
     currency: CurrencyType = Field(nullable=False)
     payment_method: PaymentMethodType = Field(nullable=False)
 
-    # ... therefore many transactions can belong to one user
     user: "User" = Relationship(back_populates="transactions")
-    # ... there many transactions can belong to one category
     category: "Category" = Relationship(back_populates="transactions")
-    # One transaction can have one activity log...
     activity_log: Optional["Activity_log"] = Relationship(back_populates="transaction")
-
 
 class PlannedExpense(SQLModel, table=True):
     id: int = Field(primary_key=True)
@@ -87,7 +77,6 @@ class PlannedExpense(SQLModel, table=True):
     currency: CurrencyType = Field(nullable=False)
     frequency: FrequencyType = Field(nullable=False)
 
-    # ...many planned expenses can belong to one user
     user: "User" = Relationship(back_populates="planned_expenses")
 
 class Activity_log(SQLModel, table=True):
@@ -95,15 +84,52 @@ class Activity_log(SQLModel, table=True):
     transaction_id: int = Field(foreign_key="transaction.id", unique=True)
     description: str = Field(nullable=False)
 
-    # ...one activity log can belong to one transaction
     transaction: "Transaction" = Relationship(back_populates="activity_log")
 
 
+def create_db_and_tables():
+    """
+    Create the database and tables if they do not exist.
+    """
+    SQLModel.metadata.create_all(engine)
+    print("Database tables created (or checked)")
+
+
+def get_session():
+    """
+    Dependency to get a database session.
+    """
+    with Session(engine) as session:
+        yield session
+
+
+## FastAPI app setup
+
+app = FastAPI()
+
+# Add a startup event to create the database and tables (using lambda)
+#app.add_event_handler("startup", lambda: create_db_and_tables())
+app.add_event_handler("startup", lambda: print("FastAPI started!"))
+
+
+# Define the root endpoint
+@app.get("/")
+def home():
+    """
+    This is the root endpoint of the FastAPI app.
+    It returns a simple message.
+    TODO: Add a summary of what the app is intended for.
+    """
+    return {"message": "Welcome to the Marginal Wallet API!"}
+
+
+# Example route with session dependency
+@app.get("/users/me")
+async def read_current_user(session: Session = Depends(get_session)):
+    # For now, let's just return a placeholder
+    return {"user_id": "current_user_id", "session_active": True}
+
+
 if __name__ == "__main__":
-    print("Models file is being executed.")
-    try:
-        user = User(id=1, name="Test User", email="test@example.com", password="password")
-        print(f"User object created: {user.name}")
-        print("User class is defined correctly.")
-    except NameError as e:
-        print(f"Error creating User object: {e}")
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=5002)
