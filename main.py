@@ -1,16 +1,14 @@
 from typing import List, Optional
 from datetime import datetime
 import enum
-from fastapi import FastAPI, Depends
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import Field, Relationship, Session, SQLModel, create_engine
+from passlib.hash import bcrypt
+from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 
-#### This section is for the database design and connection
-
-# Define the database URL
-DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/marginal-wallet"
-
-# Create the database engine
-engine = create_engine(DATABASE_URL)
+#### This section is for the database models
 
 # Define the categorical variables (enums)
 class CategoryType(str, enum.Enum):
@@ -38,7 +36,7 @@ class FrequencyType(str, enum.Enum):
 
 # Define the SQLModel classes (models)
 class User(SQLModel, table=True):
-    id: int = Field(primary_key=True)
+    id: Optional[int] = Field(primary_key=True, default=None)
     name: str = Field(nullable=False, unique=True)
     email: str = Field(nullable=False)
     password: str
@@ -48,7 +46,7 @@ class User(SQLModel, table=True):
     planned_expenses: List["PlannedExpense"] = Relationship(back_populates="user")
 
 class Category(SQLModel, table=True):
-    id: int = Field(primary_key=True)
+    id: Optional[int] = Field(primary_key=True, default=None)
     user_id: int = Field(foreign_key="user.id")
     category_type: CategoryType = Field(nullable=False)
     Counterparty: str = Field(nullable=False)
@@ -57,7 +55,7 @@ class Category(SQLModel, table=True):
     transactions: List["Transaction"] = Relationship(back_populates="category")
 
 class Transaction(SQLModel, table=True):
-    id: int = Field(primary_key=True)
+    id: Optional[int] = Field(primary_key=True, default=None)
     user_id: int = Field(foreign_key="user.id")
     category_id: int = Field(foreign_key="category.id")
     date: str = Field(nullable=False)
@@ -70,7 +68,7 @@ class Transaction(SQLModel, table=True):
     activity_log: Optional["Activity_log"] = Relationship(back_populates="transaction")
 
 class PlannedExpense(SQLModel, table=True):
-    id: int = Field(primary_key=True)
+    id: Optional[int] = Field(primary_key=True, default=None)
     user_id: int = Field(foreign_key="user.id")
     date: Optional[datetime] = Field(nullable=True)
     value: float = Field(nullable=False)
@@ -80,12 +78,18 @@ class PlannedExpense(SQLModel, table=True):
     user: "User" = Relationship(back_populates="planned_expenses")
 
 class Activity_log(SQLModel, table=True):
-    id: int = Field(primary_key=True)
+    id: Optional[int] = Field(primary_key=True, default=None)
     transaction_id: int = Field(foreign_key="transaction.id", unique=True)
     description: str = Field(nullable=False)
 
     transaction: "Transaction" = Relationship(back_populates="activity_log")
 
+
+#### This section is for the database setup
+
+# TODO: Use environment variables for sensitive data
+DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/marginal-wallet"
+engine = create_engine(DATABASE_URL)
 
 def create_db_and_tables():
     """
@@ -98,6 +102,7 @@ def create_db_and_tables():
 def get_session():
     """
     Dependency to get a database session.
+    This function is used to create a new session for each request.
     """
     with Session(engine) as session:
         yield session
@@ -105,11 +110,18 @@ def get_session():
 
 ## FastAPI app setup
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan():
+    """
+    Lifespan event for the FastAPI app.
+    It creates the database and tables when the app starts.
+    """
+    create_db_and_tables()
+    print("FastAPI started!")
+    yield
+    print("FastAPI stopped!")
 
-# Add a startup event to create the database and tables (using lambda)
-#app.add_event_handler("startup", lambda: create_db_and_tables())
-app.add_event_handler("startup", lambda: print("FastAPI started!"))
+app = FastAPI(lifespan=lifespan)
 
 
 # Define the root endpoint
@@ -123,11 +135,51 @@ def home():
     return {"message": "Welcome to the Marginal Wallet API!"}
 
 
-# Example route with session dependency
-@app.get("/users/me")
-async def read_current_user(session: Session = Depends(get_session)):
-    # For now, let's just return a placeholder
-    return {"user_id": "current_user_id", "session_active": True}
+## User registration
+
+class UserRegistration(BaseModel):
+    """
+    Data sent by the client to register a new user.
+    """
+    name: str
+    email: str
+    password: str
+
+class UserResponse(BaseModel):
+    """
+    Data sent back to the client after user registration.
+    Safely excludes the password field.
+    """
+    id: int
+    name: str
+    email: str
+
+@app.post("/users/", response_model=UserResponse)
+def register(user: UserRegistration, session: Session = Depends(get_session)):
+    """
+    User registration endpoint.
+
+    Password is hashed before creating a user instance.
+
+    A POST request with an instance of UserRegistration is expected.
+    The response will be an instance of UserResponse.
+    """
+    hashed_pass = bcrypt.hash(user.password)
+    new_user = User(name=user.name, email=user.email, password=hashed_pass)
+    try:
+        session.add(new_user)
+        session.commit()
+        session.refresh(new_user)
+        return UserResponse(id=new_user.id, name=new_user.name, email=new_user.email)
+    except IntegrityError:
+        # Handle duplicate entries
+        session.rollback()
+        raise HTTPException(status_code=400, detail="Username or email already exists")
+    except Exception as e:
+        # Handle any other exceptions
+        session.rollback()
+        print(f"Error: {e}")
+        raise HTTPException(status_code=500, detail="An error occurred while creating the user")
 
 
 if __name__ == "__main__":
