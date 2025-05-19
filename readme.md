@@ -6,6 +6,7 @@ Work in progress.
 
 ### Features
 
+- User registration and login
 - User authentication and authorization using OAuth2 and JWT tokens
 - CRUD operations for categories and transactions
 - Balance calculation
@@ -20,6 +21,14 @@ Users should be able to:
 - View the history of their transactions from most recent, for a certain period of time
 - View the history of their transactions by category (which would allow to keep track of the income for current month for a certain category, such as Minijobs and make sure they don't surpass the tax-free allowance)
 - Add an optional activity log to each transaction (e.g. a note about the transaction)
+
+Endpoints:
+- / - API root endpoint
+- /docs - Swagger UI for API documentation
+- /users/registration/ - User registration
+- /users/login/ - User login
+- /users/me/ - Get current user information, protected endpoint
+- /token/ - Get access token, hidden endpoint
 
 
 Create a virtual environment to isolate dependencies
