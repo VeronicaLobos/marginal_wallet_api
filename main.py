@@ -3,60 +3,67 @@
 """
 The following imports are used in the code:
 
-- `enum`: Provides support for enumerations, which are a
-    set of symbolic names bound to unique, constant values.
-- `os`: Provides a way of using operating system-dependent
-    functionality like reading environment variables.
-- `contextlib`: Provides utilities for working with context managers.
+    - `enum`: Provides support for enumerations, which are a
+set of symbolic names bound to unique, constant values.
+    - `os`: Provides a way of using operating system-dependent
+functionality like reading environment variables.
+    - `contextlib`: Provides utilities for working with context managers.
 - -- `asynccontextmanager`: A decorator for defining asynchronous
-    context managers.
-- `datetime`: Supplies classes for manipulating dates and times.
+context managers.
+    - `datetime`: Supplies classes for manipulating dates and times.
 - -- `timedelta`: Represents a duration, the difference between
-    two dates or times.
+two dates or times.
 - -- `timezone`: A class for dealing with time zones.
-- `dotenv`: Reads key-value pairs from a `.env` file and adds
-    them to the environment variables.
+    - `dotenv`: Reads key-value pairs from a `.env` file and adds
+them to the environment variables.
 - -- `load_dotenv`: A function that loads environment variables
-    from a `.env` file.
-- `fastapi`: A modern, fast (high-performance), web framework for
-    building APIs with Python 3.6+ based on standard Python type hints.
+from a `.env` file.
+    - `fastapi`: A modern, fast (high-performance), web framework for
+building APIs with Python 3.6+ based on standard Python type hints.
 - -- `Depends`: A dependency injection system for FastAPI.
 - -- `HTTPException`: An exception class for HTTP errors.
-- `OAuth2PasswordBearer`: A class that provides a way to handle
-    OAuth2 password flow, a standard for user authentication.
+- -- `Security`: A class for handling security-related
+dependencies in FastAPI, to use in OPenAPI docs.
+    - `fastapi.security`: A module that provides security
+utilities for FastAPI.
+- -- `HTTPBearer`: A class that provides a way to handle
+HTTP Bearer authentication.
+- -- `HTTPAuthorizationCredentials`: A class that represents
+the credentials for HTTP authorization.
+- -- `OAuth2PasswordBearer`: A class that provides a way to handle
+OAuth2 password flow, a standard for user authentication.
+    - `jose`: A library for creating and verifying JSON Web Tokens (JWT).
 - -- `JWTError`: An exception class for JWT errors. Handles errors
-    such as invalid tokens, expired tokens, etc.
+such as invalid tokens, expired tokens, etc.
 - -- `jwt`: A library for encoding and decoding JSON Web Tokens (JWT).
-- `passlib`: A password hashing library that provides a way to
-    hash and verify passwords.
+    - `passlib`: A password hashing library that provides a way to
+hash and verify passwords.
 - -- `bcrypt`: A password hashing function that is designed to
-    be slow to prevent brute-force attacks.
-- `pydantic`: A data validation and settings management library
-    based on Python type annotations.
+be slow to prevent brute-force attacks.
+    - `pydantic`: A data validation and settings management library
+based on Python type annotations.
 - -- `BaseModel`: A base class for creating Pydantic models, which
-    are used for data validation and serialization.
-- `SQLModel`: A library for SQL databases in Python, which provides
-    a way to define models and interact with the database.
-    It will be used to create the database tables and perform
-    CRUD operations.
+are used for data validation and serialization.
+    - `SQLModel`: A library for SQL databases in Python, which provides
+a way to define models and interact with the database.
 - -- `Field`: A class for defining fields in SQLModel models.
 - -- `Relationship`: A class for defining relationships between
-    SQLModel models.
+SQLModel models.
 - -- `Session`: A class for managing database sessions in SQLModel.
-    It is used with a context manager to handle transactions.
+It is used with a context manager to handle transactions.
 - -- `create_engine`: A function for creating a database engine,
-    which is used to connect to the database.
+which is used to connect to the database.
 - -- `inspect`: A function for inspecting the database schema,
-    which is used to check if the tables exist at startup.
+which is used to check if the tables exist at startup.
 - -- `select`: A function for creating SQL SELECT statements.
-- `typing`: A standard library module that provides support for
-    type hints and annotations.
+    - `typing`: A standard library module that provides support for
+type hints and annotations.
 - -- `Annotated`: A type hint that allows you to add metadata
-    to a type, such as specifying dependencies in FastAPI.
-    Avoid code duplication by using Annotated.
+to a type, such as specifying dependencies in FastAPI.
+For now, it's being used to avoid code duplication.
 - -- `List`: A generic type for lists, used for type hinting.
 - -- `Optional`: A type hint that indicates a value can be of a
-    specified type or None.
+specified type or None.
 """
 
 import enum
@@ -65,13 +72,14 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import (OAuth2PasswordBearer,
+            HTTPBearer, HTTPAuthorizationCredentials)
 from jose import JWTError, jwt
 from passlib.hash import bcrypt
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import (Field, Relationship, Session,
-                      SQLModel, create_engine, inspect, select)
+            SQLModel, create_engine, inspect, select)
 from typing import Annotated, List, Optional
 
 load_dotenv()
@@ -88,7 +96,7 @@ class CategoryType(str, enum.Enum):
 class PaymentMethodType(str, enum.Enum):
     cash = "Cash"
     paypal = "Paypal"
-    banktransfer = "Bank Transfer"
+    bank_transfer = "Bank Transfer"
 
 class CurrencyType(str, enum.Enum):
     euro = "EURO"
@@ -117,7 +125,7 @@ class Category(SQLModel, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
     user_id: int = Field(foreign_key="user.id")
     category_type: CategoryType = Field(nullable=False)
-    Counterparty: str = Field(nullable=False)
+    counterparty: str = Field(nullable=False)
 
     user: "User" = Relationship(back_populates="categories")
     transactions: List["Transaction"] = Relationship(back_populates="category")
@@ -133,7 +141,7 @@ class Transaction(SQLModel, table=True):
 
     user: "User" = Relationship(back_populates="transactions")
     category: "Category" = Relationship(back_populates="transactions")
-    activity_log: Optional["Activity_log"] = Relationship(back_populates="transaction")
+    activity_log: Optional["ActivityLog"] = Relationship(back_populates="transaction")
 
 class PlannedExpense(SQLModel, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
@@ -145,7 +153,7 @@ class PlannedExpense(SQLModel, table=True):
 
     user: "User" = Relationship(back_populates="planned_expenses")
 
-class Activity_log(SQLModel, table=True):
+class ActivityLog(SQLModel, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
     transaction_id: int = Field(foreign_key="transaction.id", unique=True)
     description: str = Field(nullable=False)
@@ -174,7 +182,9 @@ def get_session():
         yield session
 
 
-## 3. FastAPI app setup section
+## 3. API section
+
+# 3.0 FastAPI app setup
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -191,27 +201,37 @@ async def lifespan(app: FastAPI):
     yield
     print("FastAPI stopped!")
 
-app = FastAPI(lifespan=lifespan)
+security_schemes = {
+    "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+    }
+}
+
+app = FastAPI(lifespan=lifespan, security_schemes=security_schemes)
 
 db_dependency = Annotated[Session, Depends(get_session)]
 
 # 3.1 Define the root endpoint
+
 @app.get("/")
 def home():
     """
     This is the root endpoint of the FastAPI app.
     It returns a simple message.
     """
-    return {"message": "Welcome to the Marginal Wallet API!,"
-                       "Marginal Wallet is a web application "
-                       "that allows user to keep track of their "
-                       "marginal income and expenses."}
+    return {"greeting": "Welcome to the Marginal Wallet API!",
+            "version": "1.0",
+            "description": "Marginal Wallet is a web application"
+                       " that allows user to keep track of their"
+                       " marginal income and expenses."}
 
 # 3.2 User registration endpoint
 
 class UserRegistration(BaseModel):
     """
-    Data sent by the client to register a new user.
+    Input, data sent by the client to register a new user.
     """
     name: str
     email: str
@@ -219,7 +239,7 @@ class UserRegistration(BaseModel):
 
 class UserResponse(BaseModel):
     """
-    Data sent back to the client after user registration.
+    Output, data sent back to the client after user registration.
     Safely excludes the password field.
     """
     id: int
@@ -263,7 +283,16 @@ def register(user: UserRegistration, db: db_dependency):
 SECRET_KEY = os.environ.get("SECRET_KEY")
 ALGORITHM = os.environ.get("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINS = 30
+
+"""
+- oauth2_scheme: This correctly points Swagger UI to the login 
+endpoint for documenting the OAuth2 password flow, allowing 
+users to get a token via username/password in the docs.
+- bearer_scheme: This is the actual dependency used to extract 
+the Bearer token from incoming requests for protected routes.
+"""
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login/")
+bearer_scheme = HTTPBearer()
 
 def generate_access_token(payload: dict) -> str:
     """
@@ -289,13 +318,13 @@ def generate_access_token(payload: dict) -> str:
                        SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt_token
 
-def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],
-                     db: db_dependency) -> User:
+def get_current_user(db: db_dependency,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> User:
     """
     Dependency to get the current authenticated user from a JWT token.
 
-    Receives the token from the Authorization header and the database session
-    (to query the user with the info in the payload).
+    Receives the token from the Authorization header and
+    the database session (to query the user with the info in the payload).
 
     - Creates a response exception for invalid credentials.
     - Decodes the JWT token using the secret key and algorithm.
@@ -318,6 +347,7 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"}
     )
+    token = credentials.credentials
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
@@ -358,28 +388,30 @@ def authenticate_user(user: UserLogin, db: db_dependency):
 
     - Retrieves the user from the database using the email.
     - If the user does not exist or the email or password is
-    incorrect, raises a HTTPException (401) with an error message.
+      incorrect, raises a HTTPException (401) with an error message.
     - If the user exists, creates a JWT token with the user's
-    email as the subject.
+      email as the subject.
     - The token is generated using the generate_access_token function.
     - An instance of Token is created with the access token and
-    its type (bearer).
+      its type (bearer).
 
     The response will be the instance of Token.
     """
-    db_user = (db.exec(select(User).where(User.email == user.email))
-               .first())
+    db_user = db.exec(select(User).where(User.email == user.email)).first()
     if not db_user or not bcrypt.verify(user.password, db_user.password):
-        raise HTTPException(status_code=401,
-                            detail="Invalid email or password")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
     access_token = generate_access_token(payload={"sub": db_user.email})
     token = Token(access_token=access_token, token_type="bearer")
     return token
 
 # 3.4 User profile endpoint
-@app.get("/users/me/", response_model=UserResponse)
-def get_user_profile(current_user: User = Depends(get_current_user)):
+@app.get(
+    "/users/me/",
+    response_model=UserResponse,
+    dependencies=[Depends(bearer_scheme), Depends(get_current_user)],
+)
+async def get_user_profile(current_user: User = Depends(get_current_user)):
     """
     User profile endpoint.
 
