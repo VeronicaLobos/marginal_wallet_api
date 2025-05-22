@@ -14,7 +14,8 @@ Work in progress.
 - Activity log for transactions
 
 Users should be able to:
-- Register and log in to their accounts (using OAuth2 and JWT tokens)
+- Register and log in to their accounts (using OAuth2 and JWT tokens) ...[√]
+- Partially update their account information (e.g. change password) .....[√]
 - Create, read, update, and delete categories for income and expenses (type of income and counterparties)
 - Create, read, update, and delete transactions based on the categories
 - Quickly view the balance of their accounts
@@ -25,10 +26,11 @@ Users should be able to:
 Endpoints:
 - / - API root endpoint
 - /docs - Swagger UI for API documentation
-- /users/registration/ - User registration
-- /users/login/ - User login
-- /users/me/ - Get current user information, protected endpoint
-- /token/ - Get access token, hidden endpoint
+- POST /users/registration/ - User registration
+- POST /users/login/ - User login, get access token
+- GET /users/me/ - Get current user information, requires bearer token
+- PATCH /users/me/ - Update current user information, requires bearer token
+- POST /categories/ -
 
 
 Create a virtual environment to isolate dependencies
