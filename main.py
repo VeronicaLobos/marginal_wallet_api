@@ -22,8 +22,6 @@ from a `.env` file.
 building APIs with Python 3.6+ based on standard Python type hints.
 - -- `Depends`: A dependency injection system for FastAPI.
 - -- `HTTPException`: An exception class for HTTP errors.
-- -- `Security`: A class for handling security-related
-dependencies in FastAPI, to use in OPenAPI docs.
     - `fastapi.security`: A module that provides security
 utilities for FastAPI.
 - -- `HTTPBearer`: A class that provides a way to handle
@@ -76,7 +74,7 @@ from fastapi.security import (OAuth2PasswordBearer,
             HTTPBearer, HTTPAuthorizationCredentials)
 from jose import JWTError, jwt
 from passlib.hash import bcrypt
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import (Field, Relationship, Session,
             SQLModel, create_engine, inspect, select)
@@ -405,12 +403,12 @@ def authenticate_user(user: UserLogin, db: db_dependency):
     token = Token(access_token=access_token, token_type="bearer")
     return token
 
-# 3.4 User profile endpoint
+# 3.4.1 User profile endpoint
 @app.get(
     "/users/me/",
     response_model=UserResponse,
-    dependencies=[Depends(bearer_scheme), Depends(get_current_user)],
-)
+    dependencies=[Depends(bearer_scheme), Depends(get_current_user)]
+        )
 async def get_user_profile(current_user: User = Depends(get_current_user)):
     """
     User profile endpoint.
@@ -423,6 +421,87 @@ async def get_user_profile(current_user: User = Depends(get_current_user)):
     """
     return UserResponse(id=current_user.id,
                         name=current_user.name, email=current_user.email)
+
+# 3.4.2 User profile partial update endpoint
+
+class UserUpdate(BaseModel):
+    """
+    Data sent by the client to update the user profile.
+    All fields are optional, allowing for partial updates.
+    """
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    current_password: Optional[str] = None
+    new_password: Optional[str] = None
+
+@app.patch('/users/me/',
+    response_model=UserResponse,
+    dependencies=[Depends(bearer_scheme), Depends(get_current_user)]
+           )
+def update_user(user_update: UserUpdate,
+                db: db_dependency,
+                current_user: User = Depends(get_current_user)):
+    """
+    Update the authenticated user's profile.
+
+    A PATCH request with an instance of UserUpdate is expected.
+
+    Allows the current user to update their name, email, and/or password.
+    - The user must be authenticated with a valid JWT token.
+    - The 'current_user' is retrieved from the database via the 'get_current_user' dependency.
+    - The 'user_update' object contains the optional fields to be updated.
+    - The 'current_password' field must be provided to update any other fields.
+    - If 'name' or 'email' are updated, uniqueness is checked against other users.
+    - If 'new_password' is provided, it must be hashed before updating the user instance.
+
+    The response will be an instance of UserResponse (which excludes the password).
+
+    Raises:
+    - HTTPException 400: If `new_password` is provided without `current_password`,
+      if `name` or `email` are already taken by another user.
+    - HTTPException 401: If `current_password` is invalid when updating the password.
+    - HTTPException 500: For other server-side errors during the update.
+    """
+    for field, value in user_update.model_dump(exclude_unset=True).items():
+        # Checks the current password before updating any other fields
+        if field == "current_password" and not bcrypt.verify(value, current_user.password):
+            raise HTTPException(status_code=401, detail="Current password is incorrect")
+        # Checks for uniqueness of name and email
+        if field == "name" and value:
+            existing_user = db.exec(select(User).where(User.name==value)).first()
+            if existing_user and existing_user.id != current_user.id:
+                raise HTTPException(status_code=400,
+                    detail="Username already registered to another user")
+            # Update the name if it is unique
+            current_user.name = value
+        if field == "email" and value:
+            existing_user = db.exec(select(User).where(User.email==value)).first()
+            if existing_user and existing_user.id != current_user.id:
+                raise HTTPException(status_code=400,
+                    detail="Email already registered to another user")
+            # Update the email if it is unique
+            current_user.email = value
+        if field == "new_password" and value:
+            current_user.password = bcrypt.hash(value)
+
+    # Update the user instance with the new values
+    try:
+        db.add(current_user)
+        db.commit()
+        db.refresh(current_user)
+        return UserResponse(id=current_user.id, name=current_user.name,
+                            email=current_user.email)
+    except IntegrityError:
+        # Handle duplicate entries
+        db.rollback()
+        raise HTTPException(status_code=400,
+            detail="Username or email already exists")
+    except Exception as e:
+        # Handle any other exceptions and print the error for debugging
+        db.rollback()
+        print(f"Error: {e}")
+        raise HTTPException(status_code=500,
+            detail="An error occurred while updating the user profile")
 
 
 if __name__ == "__main__":
