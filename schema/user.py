@@ -1,3 +1,7 @@
+"""
+User schema definitions for the application.
+"""
+
 from __future__ import annotations
 from sqlmodel import Field, Relationship, SQLModel
 from typing import List, Optional

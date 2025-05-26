@@ -1,3 +1,4 @@
+cryptography
 email-validator
 sqlmodel~=0.0.24
 psycopg2-binary
@@ -9,3 +10,4 @@ SQLAlchemy~=2.0.40
 python-dotenv~=1.1.0
 python-jose[cryptography]~=3.4.0
 python-multipart
+PyJWT~=2.10.1

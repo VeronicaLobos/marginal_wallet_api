@@ -39,14 +39,6 @@ def register(user: UserCreate, db: SessionDep):
     The response will be an instance of UserResponse
     (which excludes the password for security reasons).
     """
-
-    #db_hero = Hero.model_validate(hero)
-    #session.add(db_hero)
-    #session.commit()
-    #session.refresh(db_hero)
-    #wreturn db_hero
-
-
     hashed_pass = get_password_hash(user.password)
     updated_user = user.model_copy(update={"password": hashed_pass})
     db_user = User.model_validate(updated_user)
@@ -73,8 +65,9 @@ def register(user: UserCreate, db: SessionDep):
 @app.post("/token")
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-) -> Token:
-    user = authenticate_user(form_data.username, form_data.password, session=SessionDep)
+    session: SessionDep) -> Token:
+    #BUG FIX: session was not being passed to the authenticate_user function
+    user = authenticate_user(form_data.username, form_data.password, session=session)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -83,7 +76,7 @@ async def login_for_access_token(
         )
     access_token_expires = timedelta(minutes=30) #TODO: load this from .env file
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": user.email}, expires_delta=access_token_expires
     )
     return Token(access_token=access_token, token_type="bearer")
 
@@ -99,4 +92,4 @@ async def read_users_me(
 async def read_own_items(
     current_user: Annotated[User, Depends(get_current_active_user)],
 ):
-    return [{"item_id": "Foo", "owner": current_user.username}]
+    return [{"item_id": "Foo", "owner": current_user.email}]

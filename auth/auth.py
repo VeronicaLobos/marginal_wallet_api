@@ -1,31 +1,35 @@
-from datetime import datetime, timedelta, timezone
-from typing import Annotated
+"""
+Authentication and Authorization Module
 
+This module provides functions for user authentication, password hashing,
+JWT token creation, and user retrieval from the database.
+    * verify_password: Verifies a plain password against a hashed password.
+    * get_password_hash: Hashes a plain password using bcrypt.
+    * get_user: Retrieves a user from the database by username (email).
+    * authenticate_user: Authenticates a user by checking the provided username and password.
+    * create_access_token: Creates a JWT access token with an expiration time.
+    * get_current_user: Retrieves the current user from the JWT token.
+    * get_current_active_user: Checks if the current user is active.
+"""
+
+import os
+from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
+from typing import Annotated
 import jwt
-from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import Depends, status
+from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
-from pydantic import BaseModel
 from fastapi import HTTPException
 from sqlmodel import select
-from sqlalchemy.orm import Session
-
 from config.database import SessionDep
-from schema.auth import Token, TokenData
-from schema.user import User, UserCreate, UserPublic
+from schema.auth import TokenData
+from schema.user import User
 
-# to get a string like this run:
-# openssl rand -hex 32
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-#TODO: load this from .env file !!
-
+load_dotenv()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
@@ -36,17 +40,23 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-#TODO: remember we were using email to login
-
 
 def get_user(username: str, session: SessionDep) -> User:
+    """
+    Retrieve a user by username (email in this case) from the database.
+    """
     stmt = select(User).where(User.email == username)
+    # BUG FIX: session returned an Annotated type, not the actual Session instance
     user = session.exec(stmt).first()
     if not user:
         raise HTTPException(status_code=404, detail=f"User '{username}' not found")
     return user
 
+
 def authenticate_user(username: str, password: str, session: SessionDep):
+    """
+    Authenticate a user by checking the provided username and password.
+    """
     user = get_user(username=username, session=session)
     if not user:
         return False
@@ -56,24 +66,33 @@ def authenticate_user(username: str, password: str, session: SessionDep):
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    """
+    Create a JWT access token with an expiration time.
+    """
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, os.environ.get("SECRET_KEY"),
+                             algorithm=os.environ.get("ALGORITHM"))
     return encoded_jwt
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], session: SessionDep):
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],
+                           session: SessionDep):
+    """
+    Get the current user from the JWT token.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, os.environ.get("SECRET_KEY"),
+                             algorithms=[os.environ.get("ALGORITHM")])
         username = payload.get("sub")
         if username is None:
             raise credentials_exception

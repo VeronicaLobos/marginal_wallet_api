@@ -1,3 +1,9 @@
+"""
+Category Schemas
+
+TODO: Separate schemas for Transaction, PlannedExpense, and ActivityLog.
+"""
+
 from __future__ import annotations
 
 import enum
@@ -6,7 +12,6 @@ from sqlmodel import (Field, Relationship,
             SQLModel, create_engine, inspect, select)
 from typing import Annotated, List, Optional
 from sqlalchemy.orm import Mapped, relationship
-
 
 class CategoryType(str, enum.Enum):
     minijob = "Minijob"
