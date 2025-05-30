@@ -5,6 +5,8 @@ This module sets up the database connection, creates tables,
 and provides a dependency for database sessions.
 
 It uses SQLModel for ORM and dotenv for environment variable management.
+The database uses PostgresSQL, and the connection URL is expected
+to be stored in an environment variable named `DATABASE_URL`.
 
     * create_db_and_tables: Function to create the database and tables
     if they do not exist.

@@ -1,17 +1,14 @@
 """
-Category Schemas
+Category schemas
 
-TODO: Separate schemas for Transaction, PlannedExpense, and ActivityLog.
+Users can create, update, and retrieve categories
+for their transactions.
 """
 
 from __future__ import annotations
-
 import enum
-from datetime import datetime
-from sqlmodel import (Field, Relationship,
-            SQLModel, create_engine, inspect, select)
-from typing import Annotated, List, Optional
-from sqlalchemy.orm import Mapped, relationship
+from typing import Optional, List
+from sqlmodel import Field, Relationship, SQLModel
 
 class CategoryType(str, enum.Enum):
     minijob = "Minijob"
@@ -19,59 +16,26 @@ class CategoryType(str, enum.Enum):
     commission = "Commission"
     expenses = "Expenses"
 
-class PaymentMethodType(str, enum.Enum):
-    cash = "Cash"
-    paypal = "Paypal"
-    bank_transfer = "Bank Transfer"
-
-class CurrencyType(str, enum.Enum):
-    euro = "EURO"
-    usd = "USD"
-
-class FrequencyType(str, enum.Enum):
-    weekly = "Weekly"
-    monthly = "Monthly"
-    quarterly = "Quarterly"
-    biannually = "Biannually"
-    yearly = "Yearly"
-    one_time = "One Time"
-
-
-class Category(SQLModel, table=True):
-    id: Optional[int] = Field(primary_key=True, default=None)
-    user_id: int = Field(foreign_key="user.id")
+class CategoryBase(SQLModel):
     category_type: CategoryType = Field(nullable=False)
     counterparty: str = Field(nullable=False)
 
-    #user: Mapped["User"] = relationship(back_populates="categories")
-    #transactions: Mapped[list["Transaction"]] = relationship(back_populates="category")
+class CategoryCreate(CategoryBase):
+    pass
 
-class Transaction(SQLModel, table=True):
+class CategoryUpdate(CategoryBase):
+    category_type: CategoryType | None = None
+    counterparty: str | None = None
+
+class CategoryPublic(CategoryBase):
+    id: int
+    user_id: int
+
+class Category(CategoryBase, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
     user_id: int = Field(foreign_key="user.id")
-    category_id: int = Field(foreign_key="category.id")
-    date: str = Field(nullable=False)
-    value: float = Field(nullable=False)
-    currency: CurrencyType = Field(nullable=False)
-    payment_method: PaymentMethodType = Field(nullable=False)
 
-    # user: "User" = Relationship(back_populates="transactions")
-    # category: "Category" = Relationship(back_populates="transactions")
-    # activity_log: Optional["ActivityLog"] = Relationship(back_populates="transaction")
-
-class PlannedExpense(SQLModel, table=True):
-    id: Optional[int] = Field(primary_key=True, default=None)
-    user_id: int = Field(foreign_key="user.id")
-    date: Optional[datetime] = Field(nullable=True)
-    value: float = Field(nullable=False)
-    currency: CurrencyType = Field(nullable=False)
-    frequency: FrequencyType = Field(nullable=False)
-
-    # user: "User" = Relationship(back_populates="planned_expenses")
-
-class ActivityLog(SQLModel, table=True):
-    id: Optional[int] = Field(primary_key=True, default=None)
-    transaction_id: int = Field(foreign_key="transaction.id", unique=True)
-    description: str = Field(nullable=False)
-
-    # transaction: "Transaction" = Relationship(back_populates="activity_log")
+    from schema.user import User
+    user: "User" = Relationship(back_populates="categories")
+    from schema.transaction import Transaction
+    transactions: List["Transaction"] = Relationship(back_populates="category")

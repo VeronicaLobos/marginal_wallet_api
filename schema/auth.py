@@ -2,7 +2,6 @@
 Authentication and Authorization Schemas
 This module defines the data models used for authentication and authorization processes.
 """
-
 from pydantic import BaseModel
 
 class Token(BaseModel):

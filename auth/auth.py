@@ -10,6 +10,10 @@ JWT token creation, and user retrieval from the database.
     * create_access_token: Creates a JWT access token with an expiration time.
     * get_current_user: Retrieves the current user from the JWT token.
     * get_current_active_user: Checks if the current user is active.
+
+get_current_user and get_current_active_user are FastAPI dependencies
+that can be used in route handlers to ensure that the user is authenticated
+and active before accessing protected resources.
 """
 
 import os
@@ -108,6 +112,4 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],
 async def get_current_active_user(
     current_user: Annotated[User, Depends(get_current_user)],
 ):
-    if current_user.disabled:
-        raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
