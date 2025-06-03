@@ -1,3 +1,9 @@
+"""
+A FastAPI application for managing marginal income and expenses.
+This application provides endpoints for user registration, authentication,
+and managing categories and movements (transactions).
+"""
+
 import os
 from dotenv import load_dotenv
 from datetime import timedelta
@@ -8,16 +14,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from auth.auth import authenticate_user, create_access_token
 from config.database import create_db_and_tables, SessionDep
-from routers import users, categories
+from routers import users, categories, movements
 from schema.auth import Token
-
-## need the following after dropping and recreating the database
-from schema.user import (UserPublic, User, UserCreate,
-                         UserDeleteConfirmation)
-from schema.category import CategoryCreate, CategoryPublic, Category
-from schema.transaction import MovementCreate, MovementPublic
-from schema.planned_expense import PlannedExpense
-from schema.activity_log import ActivityLog
 
 load_dotenv()
 
@@ -29,6 +27,11 @@ app = FastAPI(
 
 @app.on_event("startup")
 def on_startup():
+    from schema.user import User
+    from schema.category import Category
+    from schema.transaction import Movement
+    from schema.planned_expense import PlannedExpense
+    from schema.activity_log import ActivityLog
     create_db_and_tables()
 
 @app.get("/")
@@ -76,3 +79,4 @@ async def login_for_access_token(
 
 app.include_router(users.router)
 app.include_router(categories.router)
+app.include_router(movements.router)

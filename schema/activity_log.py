@@ -33,5 +33,5 @@ class ActivityLog(ActivityLogBase, table=True):
     movement: "Movement" = Relationship(
         back_populates="activity_log",
         sa_relationship=relationship("Movement",
-                                     back_populates="activity_log")
+                                back_populates="activity_log")
     )

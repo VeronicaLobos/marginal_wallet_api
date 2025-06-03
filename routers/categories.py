@@ -7,10 +7,24 @@ from config.database import SessionDep
 from schema.category import CategoryCreate, CategoryPublic, Category
 from schema.user import User
 
+# APIRouter instance for category operations
 router = APIRouter(
     prefix="/categories",
     tags=["categories"]
 )
+
+@router.get("/", response_model=List[CategoryPublic])
+def get_categories(current_user: Annotated[User, Depends(get_current_active_user)],
+                   db: SessionDep):
+    """
+    Endpoint to retrieve all categories for the current user.
+
+    This endpoint returns a list of CategoryPublic instances,
+    which include the category type, counterparty, and user ID.
+    """
+    categories = db.query(Category).filter(Category.user_id == current_user.id).all()
+    return categories
+
 
 @router.post("/add/", response_model=CategoryPublic,
              status_code=status.HTTP_201_CREATED)
@@ -43,15 +57,3 @@ def create_category(category: CategoryCreate,
         print(f"Error creating category: {e}")
         raise HTTPException(status_code=500,
             detail="An error occurred while creating the category.")
-
-@router.get("/", response_model=List[CategoryPublic])
-def get_categories(current_user: Annotated[User, Depends(get_current_active_user)],
-                   db: SessionDep):
-    """
-    Endpoint to retrieve all categories for the current user.
-
-    This endpoint returns a list of CategoryPublic instances,
-    which include the category type, counterparty, and user ID.
-    """
-    categories = db.query(Category).filter(Category.user_id == current_user.id).all()
-    return categories

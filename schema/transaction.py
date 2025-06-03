@@ -18,25 +18,17 @@ Categories of type "Minijob", "Freelance", or "Commission".
 """
 
 from __future__ import annotations
-import enum
 from typing import Optional, TYPE_CHECKING
 from sqlmodel import Field, Relationship, SQLModel
 from sqlalchemy.orm import relationship, Mapped
 
-class PaymentMethodType(str, enum.Enum):
-    cash = "Cash"
-    paypal = "Paypal"
-    bank_transfer = "Bank Transfer"
-
-class CurrencyType(str, enum.Enum):
-    euro = "EURO"
-    usd = "USD"
+from schema.enums import PaymentMethodType, CurrencyType
 
 class MovementBase(SQLModel):
     date: str = Field(nullable=False)
     value: float = Field(nullable=False)
-    currency: CurrencyType = Field(nullable=False)
-    payment_method: PaymentMethodType = Field(nullable=False)
+    currency: CurrencyType
+    payment_method: PaymentMethodType
 
 class MovementCreate(MovementBase):
     category_id: int
@@ -49,8 +41,6 @@ class MovementUpdate(MovementBase):
 
 class MovementPublic(MovementBase):
     id: int
-    user_id: int
-    category_id: int
 
 class Movement(MovementBase, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
@@ -62,17 +52,17 @@ class Movement(MovementBase, table=True):
         from schema.category import Category
         from schema.activity_log import ActivityLog
 
-    user: "User" = Relationship(
+    user: Mapped["User"] = Relationship(
         back_populates="movements",
         sa_relationship=relationship("User",
                                      back_populates="movements")
     )
-    category: "Category" = Relationship(
+    category: Mapped["Category"] = Relationship(
         back_populates="movements",
         sa_relationship=relationship("Category",
                                      back_populates="movements")
     )
-    activity_log: Optional["ActivityLog"] = Relationship(
+    activity_log: Mapped[Optional["ActivityLog"]] = Relationship(
         back_populates="movement",
         sa_relationship=relationship("ActivityLog",
                                      back_populates="movement",
