@@ -12,7 +12,14 @@ expenses associated with them.
 
 from __future__ import annotations
 from sqlmodel import Field, Relationship, SQLModel
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
+from sqlalchemy.orm import Mapped, relationship
+
+if TYPE_CHECKING:
+    from schema.category import Category
+    from schema.transaction import Movement
+    from schema.planned_expense import PlannedExpense
+
 
 class UserBase(SQLModel):
     name: str = Field(nullable=False, unique=True)
@@ -31,13 +38,31 @@ class UserNameEmailUpdate(UserBase):
 class UserPasswordUpdate(SQLModel):
     password: str
 
+class UserDeleteConfirmation(SQLModel):
+    password: str
+
 class User(UserBase, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
     password: str
 
-    from schema.category import Category
-    categories: List["Category"] = Relationship(back_populates="user")
-    from schema.transaction import Transaction
-    transactions: List["Transaction"] = Relationship(back_populates="user")
-    from schema.planned_expense import PlannedExpense
-    planned_expenses: List["PlannedExpense"] = Relationship(back_populates="user")
+    categories: Mapped[List["Category"]] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+        sa_relationship=relationship("Category",
+                                     back_populates="user",
+                                     cascade="all, delete-orphan")
+    )
+    movements: Mapped[List["Movement"]] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+        sa_relationship=relationship("Movement",
+                                     back_populates="user",
+                                     cascade="all, delete-orphan")
+    )
+    planned_expenses: Mapped[List["PlannedExpense"]] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+        sa_relationship=relationship("PlannedExpense",
+                                     back_populates="user",
+                                     cascade="all, delete-orphan")
+    )

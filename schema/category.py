@@ -2,13 +2,14 @@
 Category schemas
 
 Users can create, update, and retrieve categories
-for their transactions.
+for their transactions*.
 """
 
 from __future__ import annotations
 import enum
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import Field, Relationship, SQLModel
+from sqlalchemy.orm import relationship, Mapped
 
 class CategoryType(str, enum.Enum):
     minijob = "Minijob"
@@ -35,7 +36,15 @@ class Category(CategoryBase, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
     user_id: int = Field(foreign_key="user.id")
 
-    from schema.user import User
-    user: "User" = Relationship(back_populates="categories")
-    from schema.transaction import Transaction
-    transactions: List["Transaction"] = Relationship(back_populates="category")
+    if TYPE_CHECKING:
+        from schema.user import User
+        from schema.transaction import Movement
+
+    user: "User" = Relationship(
+        back_populates="categories",
+        sa_relationship=relationship("User", back_populates="categories")
+    )
+    movements: Mapped[List["Movement"]] = Relationship(
+        back_populates="category",
+        sa_relationship=relationship("Movement", back_populates="category")
+    )

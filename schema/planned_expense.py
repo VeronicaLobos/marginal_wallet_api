@@ -14,7 +14,8 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 from sqlmodel import Field, SQLModel, Relationship
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
+from sqlalchemy.orm import relationship, Mapped
 
 class CurrencyType(str, enum.Enum):
     euro = "EURO"
@@ -35,7 +36,8 @@ class PlannedExpenseBase(SQLModel):
     frequency: FrequencyType = Field(nullable=False)
 
 class PlannedExpenseCreate(PlannedExpenseBase):
-    user_id: int
+    # user_id is set by the endpoint, not required from client input
+    pass
 
 class PlannedExpenseUpdate(PlannedExpenseBase):
     date: Optional[datetime] = None
@@ -51,5 +53,11 @@ class PlannedExpense(PlannedExpenseBase, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
     user_id: int = Field(foreign_key="user.id")
 
-    from schema.user import User
-    user: "User" = Relationship(back_populates="planned_expenses")
+    if TYPE_CHECKING:
+        from schema.user import User
+
+    # Apply sa_relationship here
+    user: "User" = Relationship(
+        back_populates="planned_expenses",
+        sa_relationship=relationship("User", back_populates="planned_expenses")
+    )

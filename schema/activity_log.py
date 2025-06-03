@@ -15,15 +15,23 @@ will also be deleted.
 """
 
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from sqlmodel import Field, SQLModel, Relationship
+from sqlalchemy.orm import relationship, Mapped
 
 class ActivityLogBase(SQLModel):
     description: str = Field(nullable=False)
 
 class ActivityLog(ActivityLogBase, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
-    transaction_id: int = Field(foreign_key="transaction.id", unique=True)
+    transaction_id: int = Field(foreign_key="movement.id",
+                                unique=True)
 
-    from schema.transaction import Transaction
-    transaction: "Transaction" = Relationship(back_populates="activity_log")
+    if TYPE_CHECKING:
+        from schema.transaction import Movement
+
+    movement: "Movement" = Relationship(
+        back_populates="activity_log",
+        sa_relationship=relationship("Movement",
+                                     back_populates="activity_log")
+    )
