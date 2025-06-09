@@ -18,6 +18,7 @@ Categories of type "Minijob", "Freelance", or "Commission".
 """
 
 from __future__ import annotations
+from datetime import date
 from typing import Optional, TYPE_CHECKING
 from sqlmodel import Field, Relationship, SQLModel
 from sqlalchemy.orm import relationship, Mapped
@@ -25,7 +26,7 @@ from sqlalchemy.orm import relationship, Mapped
 from schema.enums import PaymentMethodType, CurrencyType
 
 class MovementBase(SQLModel):
-    date: str = Field(nullable=False)
+    movement_date: date = Field(nullable=False)
     value: float = Field(nullable=False)
     currency: CurrencyType
     payment_method: PaymentMethodType
@@ -33,11 +34,13 @@ class MovementBase(SQLModel):
 class MovementCreate(MovementBase):
     category_id: int
 
-class MovementUpdate(MovementBase):
-    date: str | None = None
-    value: float | None = None
-    currency: CurrencyType | None = None
-    payment_method: PaymentMethodType | None = None
+class MovementUpdate(SQLModel):
+    # By inheriting from SQLModel instead of MovementBase,
+    # it can make the fields optional and allow partial updates
+    movement_date: Optional[date] = Field(default=None)
+    value: Optional[float] = Field(default=None)
+    currency: Optional[CurrencyType] = Field(default=None)
+    payment_method: Optional[PaymentMethodType] = Field(default=None)
 
 class MovementPublic(MovementBase):
     id: int

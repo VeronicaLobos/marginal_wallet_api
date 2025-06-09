@@ -101,10 +101,10 @@ async def read_minijobs_balance(
 
     now = datetime.now()
     statement = (select(Movement).join(Category)
-                .where(Movement.user_id == current_user.id)
-                .where(Category.counterparty == "Minijob")
-                .where(extract('month', Movement.date) == now.month)
-                .where(extract('year', Movement.date) == now.year))
+        .where(Movement.user_id == current_user.id)
+        .where(Category.category_type == "Minijob")
+        .where(extract('month', Movement.movement_date) == now.month)
+        .where(extract('year', Movement.movement_date) == now.year))
     minijobs_query = db.exec(statement).all()
 
     minijobs_movements = [MovementPublic.model_validate(mv) for mv in minijobs_query]
