@@ -1,14 +1,16 @@
+from datetime import datetime
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
+from sqlmodel import select, extract
 
 from auth.auth import (get_current_active_user,
                        get_password_hash, verify_password)
 from config.database import SessionDep
 from schema.user import (UserPublic, User, UserCreate,
                          UserDeleteConfirmation)
-from schema.category import CategoryPublic
-
+from schema.category import CategoryPublic, Category
+from schema.transaction import Movement, MovementPublic
 
 # APIRouter instance for user operations
 router = APIRouter(
@@ -61,17 +63,57 @@ async def read_users_me(
 
 @router.get("/me/items/")
 async def read_own_items(
-    current_user: Annotated[User, Depends(get_current_active_user)]
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: SessionDep
 ):
     """
-    Endpoint to retrieve items associated with the authenticated user.
+    Endpoint to retrieve the user's categories and overall balance.
+
+    This endpoint returns a list of the user's categories
+    and their total calculated balance from all movements.
     """
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Not authenticated")
+
+    categories = [CategoryPublic.model_validate(cat)
+                    for cat in current_user.categories]
+
+    balance = sum(movement.value for movement in current_user.movements)
+
     return {
-        "categories": [CategoryPublic.model_validate(cat) for cat in
-                       current_user.categories]
+        "categories": categories,
+        "total_balance": balance
+    }
+
+
+@router.get("/me/minijobs_balance/", response_model=dict)
+async def read_minijobs_balance(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: SessionDep):
+    """
+    Endpoint to retrieve the user's balance for minijobs,
+    for the current month and year.
+    """
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Not authenticated")
+
+    now = datetime.now()
+    statement = (select(Movement).join(Category)
+                .where(Movement.user_id == current_user.id)
+                .where(Category.counterparty == "Minijob")
+                .where(extract('month', Movement.date) == now.month)
+                .where(extract('year', Movement.date) == now.year))
+    minijobs_query = db.exec(statement).all()
+
+    minijobs_movements = [MovementPublic.model_validate(mv) for mv in minijobs_query]
+
+    minijobs_balance = sum(mv.value for mv in minijobs_movements)
+
+    return {
+        "minijobs_balance": minijobs_balance,
+        "minijobs_movements": minijobs_movements
     }
 
 
