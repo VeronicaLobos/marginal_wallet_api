@@ -11,6 +11,8 @@ expenses associated with them.
 """
 
 from __future__ import annotations
+
+import calendar
 from sqlmodel import Field, Relationship, SQLModel
 from typing import List, Optional, TYPE_CHECKING
 from sqlalchemy.orm import Mapped, relationship
@@ -36,10 +38,29 @@ class UserNameEmailUpdate(UserBase):
     email: Optional[str] = None
 
 class UserPasswordUpdate(SQLModel):
-    password: str
+    current_password: str
+    new_password: str
+    confirm_new_password: str
 
 class UserDeleteConfirmation(SQLModel):
     password: str
+
+class MinijobsBalanceSummary(SQLModel):
+    minijobs_balance: float = Field(default=0.0)
+    max_earnings: str = Field(default="556€")
+    current_month: str
+    current_year: int
+
+class CategoryTypeBalanceSummary(SQLModel):
+    category_type: str
+    balance: float = Field(default=0.0)
+    current_month: str
+    current_year: int
+
+class UserDashboard(SQLModel):
+    balance: float = Field(default=0.0)
+    num_categories: int = Field(default=0)
+    num_movements: int = Field(default=0)
 
 class User(UserBase, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)

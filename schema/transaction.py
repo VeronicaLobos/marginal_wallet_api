@@ -32,7 +32,7 @@ class MovementBase(SQLModel):
     payment_method: PaymentMethodType
 
 class MovementCreate(MovementBase):
-    category_id: int
+    pass
 
 class MovementUpdate(SQLModel):
     # By inheriting from SQLModel instead of MovementBase,
@@ -41,6 +41,7 @@ class MovementUpdate(SQLModel):
     value: Optional[float] = Field(default=None)
     currency: Optional[CurrencyType] = Field(default=None)
     payment_method: Optional[PaymentMethodType] = Field(default=None)
+    category_id: Optional[int] = None
 
 class MovementPublic(MovementBase):
     id: int
