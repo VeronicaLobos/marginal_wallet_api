@@ -1,6 +1,7 @@
 """
 This module contains helper functions to check ownership of
-categories and movements for the current user.
+resources (categories, movements, planned expenses, and activity logs)
+for the current user.
 
 Thanks to FastAPI's dependency injection system,
 these functions can be easily integrated into route handlers
@@ -14,12 +15,14 @@ from fastapi import Depends, HTTPException, status
 ## Importing necessary dependencies
 from config.database import SessionDep
 from auth.auth import get_current_active_user
+from schema.activity_log import ActivityLog
 
 ## Importing necessary schemas
 from schema.category import Category
 from schema.enums import CategoryType
+from schema.planned_expense import PlannedExpense
 from schema.user import User
-from schema.transaction import Movement
+from schema.movement import Movement
 
 
 def check_category_belongs_to_user(
@@ -66,3 +69,54 @@ def check_movement_belongs_to_user(
                             detail="Movement not found or does not belong to the user.")
 
     return movement
+
+
+async def check_planned_expense_belongs_to_user(
+    planned_expense_id: int,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: SessionDep
+) -> PlannedExpense:
+    """
+    Dependency to check if a planned expense with the given ID exists
+    and belongs to the currently authenticated user.
+    Fetches the planned expense if found, otherwise raises a 404 HTTPException.
+    """
+    statement = select(PlannedExpense).where(
+        PlannedExpense.id == planned_expense_id,
+        PlannedExpense.user_id == current_user.id
+    )
+    planned_expense = db.exec(statement).first()
+    if not planned_expense:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Planned expense not found or does not belong to the current user."
+        )
+    return planned_expense
+
+
+async def check_activity_log_belongs_to_user(
+    activity_log_id: int,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: SessionDep
+) -> ActivityLog:
+    """
+    Dependency to check if an activity log with the given ID exists
+    and if its associated movement belongs to the currently authenticated user.
+    Fetches the activity log if found, otherwise raises a 404 HTTPException.
+    """
+    statement = (
+        select(ActivityLog)
+        .join(Movement)
+        .where(
+            ActivityLog.id == activity_log_id,
+            Movement.user_id == current_user.id
+        )
+    )
+    activity_log = db.exec(statement).first()
+    if not activity_log:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Activity log not found or does not belong "
+                   "to the current user's movements."
+        )
+    return activity_log

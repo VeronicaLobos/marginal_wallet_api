@@ -11,7 +11,7 @@ planned expenses.
 """
 
 from __future__ import annotations
-from datetime import datetime
+from datetime import date
 from sqlmodel import Field, SQLModel, Relationship
 from typing import Optional, TYPE_CHECKING
 from sqlalchemy.orm import relationship, Mapped
@@ -19,19 +19,21 @@ from sqlalchemy.orm import relationship, Mapped
 from schema.enums import CurrencyType, FrequencyType
 
 class PlannedExpenseBase(SQLModel):
-    date: Optional[datetime] = Field(nullable=True)
+    aprox_date: date = Field(nullable=False)
     value: float = Field(nullable=False)
     currency: CurrencyType = Field(nullable=False)
     frequency: FrequencyType = Field(nullable=False)
+    description: str = Field(min_length=1)
 
 class PlannedExpenseCreate(PlannedExpenseBase):
     pass
 
-class PlannedExpenseUpdate(PlannedExpenseBase):
-    date: Optional[datetime] = None
-    value: Optional[float] = None
-    currency: CurrencyType | None = None
-    frequency: FrequencyType | None = None
+class PlannedExpenseUpdate(SQLModel):
+    aprox_date: Optional[date] = Field(default=None)
+    value: Optional[float] = Field(default=None)
+    currency: Optional[CurrencyType] = Field(default=None)
+    frequency: Optional[FrequencyType] = Field(default=None)
+    description: Optional[str] = Field(default=None, min_length=1)
 
 class PlannedExpensePublic(PlannedExpenseBase):
     id: int

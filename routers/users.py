@@ -16,7 +16,7 @@ from schema.user import (UserPublic, User, UserCreate,
                          MinijobsBalanceSummary,
                          CategoryTypeBalanceSummary)
 from schema.category import Category
-from schema.transaction import Movement, MovementPublic
+from schema.movement import Movement, MovementPublic
 
 # APIRouter instance for user operations
 router = APIRouter(
@@ -262,8 +262,6 @@ async def read_category_balance(
         .where(extract('year', Movement.movement_date) == now.year)
                           )
     category_query = db.exec(category_statement).all()
-
-    print(category_query)
 
     category_movements = [MovementPublic.model_validate(movement)
                             for movement in category_query]

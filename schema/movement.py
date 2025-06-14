@@ -35,8 +35,6 @@ class MovementCreate(MovementBase):
     pass
 
 class MovementUpdate(SQLModel):
-    # By inheriting from SQLModel instead of MovementBase,
-    # it can make the fields optional and allow partial updates
     movement_date: Optional[date] = Field(default=None)
     value: Optional[float] = Field(default=None)
     currency: Optional[CurrencyType] = Field(default=None)
@@ -66,9 +64,10 @@ class Movement(MovementBase, table=True):
         sa_relationship=relationship("Category",
                                      back_populates="movements")
     )
-    activity_log: Mapped[Optional["ActivityLog"]] = Relationship(
+    activity_log: Optional["ActivityLog"] = Relationship(
         back_populates="movement",
         sa_relationship=relationship("ActivityLog",
                                      back_populates="movement",
-                                     uselist=False)
+                                     uselist=False,
+                                     cascade="all, delete-orphan")
     )

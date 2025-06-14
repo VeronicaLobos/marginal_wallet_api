@@ -16,10 +16,11 @@ from auth.auth import get_current_active_user
 from config.database import SessionDep
 from dependencies import (check_movement_belongs_to_user,
                           check_category_belongs_to_user)
+from schema.activity_log import ActivityLogPublic, ActivityLogCreate, ActivityLog
 from schema.category import Category
 
 from schema.user import User
-from schema.transaction import (MovementPublic,
+from schema.movement import (MovementPublic,
                                 Movement, MovementUpdate)
 
 # APIRouter instance for movement operations
@@ -151,3 +152,49 @@ async def delete_movement(
     """
     db.delete(movement)
     db.commit()
+
+
+@router.post("/{movement_id}/activity_logs",
+             response_model=ActivityLogPublic,
+             status_code=status.HTTP_201_CREATED)
+async def create_activity_log(
+    activity_log_data: ActivityLogCreate,
+    movement: Annotated[Movement, Depends(check_movement_belongs_to_user)],
+    db: SessionDep
+):
+    """
+    Create a new activity log for a specific movement belonging to the user.
+    Each movement can only have one activity log.
+    """
+    existing_log_statement = (select(ActivityLog)
+                    .where(ActivityLog.movement_id == movement.id))
+    existing_log = db.exec(existing_log_statement).first()
+    if existing_log:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"An activity log already exists for movement ID "
+                   f"{movement.id}. Each movement can only have one log."
+        )
+
+    db_activity_log = ActivityLog.model_validate(activity_log_data,
+                                update={"movement_id": movement.id})
+
+    try:
+        db.add(db_activity_log)
+        db.commit()
+        db.refresh(db_activity_log)
+        return db_activity_log
+    except IntegrityError as e:
+        db.rollback()
+        print(f"Integrity Error creating activity log: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Error creating activity log (e.g., movement ID already has a log)." # <--- Changed detail
+        )
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating activity log: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred while creating the activity log."
+        )

@@ -8,7 +8,7 @@ from config.database import SessionDep
 from dependencies import check_category_belongs_to_user
 
 from schema.category import CategoryCreate, CategoryPublic, Category, CategoryUpdate
-from schema.transaction import MovementPublic, Movement, MovementCreate
+from schema.movement import MovementPublic, Movement, MovementCreate
 from schema.user import User
 
 # APIRouter instance for category operations
@@ -16,7 +16,6 @@ router = APIRouter(
     prefix="/categories",
     tags=["categories"]
 )
-
 
 @router.post("/", response_model=CategoryPublic,
              status_code=status.HTTP_201_CREATED)

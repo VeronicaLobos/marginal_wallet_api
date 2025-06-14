@@ -14,7 +14,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from auth.auth import authenticate_user, create_access_token
 from config.database import create_db_and_tables, SessionDep
-from routers import users, categories, movements
+from routers import users, categories, movements, planned_expenses, activity_logs
 from schema.auth import Token
 
 load_dotenv()
@@ -29,7 +29,7 @@ app = FastAPI(
 def on_startup():
     from schema.user import User
     from schema.category import Category
-    from schema.transaction import Movement
+    from schema.movement import Movement
     from schema.planned_expense import PlannedExpense
     from schema.activity_log import ActivityLog
     create_db_and_tables()
@@ -80,3 +80,5 @@ async def login_for_access_token(
 app.include_router(users.router)
 app.include_router(categories.router)
 app.include_router(movements.router)
+app.include_router(planned_expenses.router)
+app.include_router(activity_logs.router)

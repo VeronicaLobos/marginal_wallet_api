@@ -10,7 +10,7 @@ from alembic import context
 
 from schema.user import User
 from schema.category import Category
-from schema.transaction import Movement
+from schema.movement import Movement
 from schema.planned_expense import PlannedExpense
 from schema.activity_log import ActivityLog
 
