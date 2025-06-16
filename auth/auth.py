@@ -28,13 +28,14 @@ from passlib.context import CryptContext
 from fastapi import HTTPException
 from sqlmodel import select
 from config.database import SessionDep
+
 from schema.auth import TokenData
 from schema.user import User
 
 load_dotenv()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/token')
 
 
 def verify_password(plain_password, hashed_password):

@@ -1,13 +1,18 @@
 import calendar
-from datetime import datetime
+import os
+from datetime import datetime, timedelta
 from typing import Annotated
+
+from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select, extract
 
 from auth.auth import (get_current_active_user,
-                       get_password_hash, verify_password)
+                       get_password_hash, verify_password, authenticate_user, create_access_token)
 from config.database import SessionDep
+from schema.auth import Token
 from schema.enums import CategoryType
 
 from schema.user import (UserPublic, User, UserCreate,
@@ -17,6 +22,8 @@ from schema.user import (UserPublic, User, UserCreate,
                          CategoryTypeBalanceSummary)
 from schema.category import Category
 from schema.movement import Movement, MovementPublic
+
+load_dotenv()
 
 # APIRouter instance for user operations
 router = APIRouter(
