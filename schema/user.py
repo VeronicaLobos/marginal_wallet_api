@@ -19,7 +19,7 @@ from sqlalchemy.orm import Mapped, relationship
 
 if TYPE_CHECKING:
     from schema.category import Category
-    from schema.transaction import Movement
+    from schema.movement import Movement
     from schema.planned_expense import PlannedExpense
 
 
