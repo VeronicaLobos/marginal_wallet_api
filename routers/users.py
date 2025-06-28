@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import Annotated
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select, extract
@@ -160,22 +160,24 @@ async def update_password(
 @router.delete("/me",
                status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
-    delete_confirmation: UserDeleteConfirmation,
+    # Changed to accept password via a custom header
+    password_confirmation: Annotated[str, Header(
+        alias="X-Confirm-Password",
+        description="User's current password for deletion confirmation")],
     current_user: Annotated[User, Depends(get_current_active_user)],
     db: SessionDep
 ):
     """
     Endpoint to delete the authenticated user.
 
-    This endpoint expects a POST request with an instance
-    of UserDeleteConfirmation, which includes the user's
-    password for confirmation. It verifies the password
-    and deletes the user and all associated data from the database.
+    This endpoint expects the user's password in the 'X-Confirm-Password' header
+    for confirmation. It verifies the password and deletes the user and all
+    associated data from the database.
 
     Any associated movements, categories, planned expenses and
     activity logs that belong to the user will also be deleted.
     """
-    if not verify_password(delete_confirmation.password,
+    if not verify_password(password_confirmation, # Use the password from the header
                            current_user.password):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Incorrect password, "

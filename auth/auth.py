@@ -46,15 +46,14 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def get_user(username: str, session: SessionDep) -> User:
+def get_user(username: str, session: SessionDep)  -> User | None:
     """
     Retrieve a user by username (email in this case) from the database.
     """
     stmt = select(User).where(User.email == username)
-    # BUG FIX: session returned an Annotated type, not the actual Session instance
     user = session.exec(stmt).first()
     if not user:
-        raise HTTPException(status_code=404, detail=f"User '{username}' not found")
+        return None
     return user
 
 

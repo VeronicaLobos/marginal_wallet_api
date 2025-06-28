@@ -41,6 +41,12 @@ sqlite_file_name = "test.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 test_engine = create_engine(sqlite_url, echo=False)
 
+AUTHENTICATED_USER = {
+        "name": "jdoe_test",
+        "email": "jdoe_test@gmail.com",
+        "password": "admin123supersecure"
+    }
+
 
 @pytest.fixture(name="session", scope="function")
 def session_fixture():
@@ -80,9 +86,9 @@ def test_auth_user_fixture(session: Session):
     that require authentication.
     """
     user_create_data = UserCreate(
-        name="jdoe_test",
-        email="jdoe_test@gmail.com",
-        password="admin123supersecure"
+        name=AUTHENTICATED_USER["name"],
+        email=AUTHENTICATED_USER["email"],
+        password=AUTHENTICATED_USER["password"]
     )
     hashed_password = get_password_hash(user_create_data.password)
 
