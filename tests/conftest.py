@@ -3,14 +3,24 @@ This module sets up fixtures for testing a FastAPI application.
 It provides a test database session, a FastAPI TestClient,
 and a pre-registered authenticated user for tests that require
 authentication.
+Fixtures are the dependency injection mechanism in pytest,
+allowing tests to share setup code and resources.
+
+Fixtures in this module include:
+* session: A SQLModel Session for database operations during tests.
+* client: A FastAPI TestClient that uses the test database session.
+* test_auth_user: A pre-registered user in the test database,
+  used for authentication in tests.
+* auth_client: A TestClient that is authenticated with a test user.
 """
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
+
+# Ensure the project root is in the path for imports
 import sys
 import os
-
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_dir, os.pardir))
 sys.path.insert(0, project_root)
