@@ -29,6 +29,7 @@ class PlannedExpenseCreate(PlannedExpenseBase):
     pass
 
 class PlannedExpenseUpdate(SQLModel):
+    # TODO: Correct the typo in the field name
     aprox_date: Optional[date] = Field(default=None)
     value: Optional[float] = Field(default=None)
     currency: Optional[CurrencyType] = Field(default=None)
