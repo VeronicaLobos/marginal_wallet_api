@@ -20,12 +20,13 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pytest sqlmodel "python-dotenv" # Ensure python-dotenv is installed
+        pip install pytest sqlmodel "python-dotenv"
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Run tests
       run: |
-        # Set the DATABASE_URL environment variable for the test run
-        # Use a simple SQLite database file for CI. This will be created in the runner's workspace.
+        # Set environment variables required by the application for testing
         export DATABASE_URL="sqlite:///./ci_database.db"
+        export SECRET_KEY="super-secret-key-for-ci-tests"
+        export ALGORITHM="HS256"
         pytest
