@@ -31,10 +31,16 @@ from main import app
 from config.database import get_session as get_session_dependency
 from auth.auth import (get_current_active_user as
                        get_current_active_user_dependency)
+from auth.rate_limit import limiter
 
 # Auth functions and models
 from auth.auth import get_password_hash
 from schema.user import User, UserCreate
+
+# Rate limiting setup
+from slowapi import Limiter
+from slowapi.util import get_ipaddr
+from slowapi.middleware import SlowAPIMiddleware
 
 # Database setup for testing
 sqlite_file_name = "test.db"
@@ -74,8 +80,16 @@ def client_fixture(session: Session):
     The session is cleared after each test to ensure no state is carried over.
     """
     app.dependency_overrides[get_session_dependency] = lambda: session
+
+    #original_limiter_enabled = limiter.enabled
+
+    #limiter.enabled = False
+
     with TestClient(app) as client:
         yield client
+
+    #limiter.enabled = original_limiter_enabled
+
     app.dependency_overrides.clear()
 
 

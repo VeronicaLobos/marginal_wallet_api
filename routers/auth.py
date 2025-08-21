@@ -3,13 +3,16 @@ from datetime import timedelta
 from typing import Annotated
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 
-
 from auth.auth import (authenticate_user, create_access_token)
+from auth.rate_limit import limiter
 from config.database import SessionDep
 from schema.auth import Token
+
+from slowapi import Limiter
+from slowapi.util import get_ipaddr
 
 load_dotenv()
 
@@ -21,7 +24,9 @@ router = APIRouter(
 
 
 @router.post("/token", response_model=Token)
+@limiter.limit("5/minute")
 async def login_for_access_token(
+    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: SessionDep) -> Token:
     """

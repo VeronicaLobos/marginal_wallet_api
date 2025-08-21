@@ -3,9 +3,6 @@ Transaction Schema
 
 Users can create, update, and retrieve transactions.
 
-TODO: Transactions can be deleted, and any associated activity
-logs will also be deleted.
-
 * Each transaction is associated with a user and a category
 from that user.
 * Each User and Category can have multiple transactions.
