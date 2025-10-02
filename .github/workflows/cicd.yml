@@ -25,6 +25,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
       - name: Run tests
+        env:
+          # Provide environment variables for the test run
+          DATABASE_URL: "sqlite:///./test.db"
+          SECRET_KEY: "a-test-secret-key"
+          ALGORITHM: "HS256"
+          ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+          GOOGLE_API_KEY: "a-fake-google-key" # Needed for tests
         run: pytest
 
   style:
