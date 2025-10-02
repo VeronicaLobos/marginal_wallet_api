@@ -5,10 +5,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 limiter = Limiter(key_func=get_ipaddr, default_limits=["20/minute"])
 
+
 #
 def custom_rate_limit_exceeded_handler(
-        request: Request,
-        exc: StarletteHTTPException
+    request: Request, exc: StarletteHTTPException
 ) -> Response:
     """
     Custom handler for rate limit exceeded exceptions.

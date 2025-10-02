@@ -13,13 +13,14 @@ Fixtures in this module include:
   used for authentication in tests.
 * auth_client: A TestClient that is authenticated with a test user.
 """
+
 import sys
 import os
 
 # Set a test-specific database URL environment variable BEFORE importing the app.
 # This ensures that when the application is imported, its database engine
 # is created using this test database, not the one from the .env file.
-os.environ['DATABASE_URL'] = 'sqlite:///./test.db'
+os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 
 import pytest
 from fastapi.testclient import TestClient
@@ -35,8 +36,7 @@ from main import app
 
 # Actual dependency functions to override
 from config.database import get_session as get_session_dependency
-from auth.auth import (get_current_active_user as
-                       get_current_active_user_dependency)
+from auth.auth import get_current_active_user as get_current_active_user_dependency
 from auth.rate_limit import limiter
 
 # Auth functions and models
@@ -54,10 +54,10 @@ sqlite_url = f"sqlite:///{sqlite_file_name}"
 test_engine = create_engine(sqlite_url, echo=False)
 
 AUTHENTICATED_USER = {
-        "name": "jdoe_test",
-        "email": "jdoe_test@gmail.com",
-        "password": "admin123supersecure"
-    }
+    "name": "jdoe_test",
+    "email": "jdoe_test@gmail.com",
+    "password": "admin123supersecure",
+}
 
 
 @pytest.fixture(name="session", scope="function")
@@ -87,14 +87,14 @@ def client_fixture(session: Session):
     """
     app.dependency_overrides[get_session_dependency] = lambda: session
 
-    #original_limiter_enabled = limiter.enabled
+    # original_limiter_enabled = limiter.enabled
 
-    #limiter.enabled = False
+    # limiter.enabled = False
 
     with TestClient(app) as client:
         yield client
 
-    #limiter.enabled = original_limiter_enabled
+    # limiter.enabled = original_limiter_enabled
 
     app.dependency_overrides.clear()
 
@@ -108,14 +108,14 @@ def test_auth_user_fixture(session: Session):
     user_create_data = UserCreate(
         name=AUTHENTICATED_USER["name"],
         email=AUTHENTICATED_USER["email"],
-        password=AUTHENTICATED_USER["password"]
+        password=AUTHENTICATED_USER["password"],
     )
     hashed_password = get_password_hash(user_create_data.password)
 
     test_user_db = User(
         name=user_create_data.name,
         email=user_create_data.email,
-        password=hashed_password
+        password=hashed_password,
     )
 
     session.add(test_user_db)
@@ -135,7 +135,8 @@ def auth_client_fixture(client: TestClient, test_auth_user: User):
 
     This client will be used in tests that require authentication.
     """
-    app.dependency_overrides[get_current_active_user_dependency] =\
-                                            lambda: test_auth_user
+    app.dependency_overrides[get_current_active_user_dependency] = (
+        lambda: test_auth_user
+    )
     yield client
     app.dependency_overrides.clear()

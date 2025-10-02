@@ -10,19 +10,30 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import select, extract
 
 from auth.rate_limit import limiter
-from auth.auth import (get_current_active_user,
-                       get_password_hash, verify_password, authenticate_user, create_access_token)
+from auth.auth import (
+    get_current_active_user,
+    get_password_hash,
+    verify_password,
+    authenticate_user,
+    create_access_token,
+)
 from config.database import SessionDep
 from schema.activity_log import ActivityLog
 
 from schema.auth import Token
 from schema.enums import CategoryType
 
-from schema.user import (UserPublic, User, UserCreate,
-                         UserDeleteConfirmation, UserNameEmailUpdate,
-                         UserPasswordUpdate, UserDashboard,
-                         MinijobsBalanceSummary,
-                         CategoryTypeBalanceSummary)
+from schema.user import (
+    UserPublic,
+    User,
+    UserCreate,
+    UserDeleteConfirmation,
+    UserNameEmailUpdate,
+    UserPasswordUpdate,
+    UserDashboard,
+    MinijobsBalanceSummary,
+    CategoryTypeBalanceSummary,
+)
 from schema.category import Category
 from schema.movement import Movement, MovementPublic
 
@@ -31,19 +42,14 @@ from services.financial_insights import generate_financial_insights
 load_dotenv()
 
 # APIRouter instance for user operations
-router = APIRouter(
-    prefix="/users",
-    tags=["users"]
+router = APIRouter(prefix="/users", tags=["users"])
+
+
+@router.post(
+    "/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED
 )
-
-
-@router.post("/register", response_model=UserPublic,
-             status_code=status.HTTP_201_CREATED)
 @limiter.limit("10/minute")
-async def register(
-    request: Request,
-    user: UserCreate,
-    db: SessionDep):
+async def register(request: Request, user: UserCreate, db: SessionDep):
     """
     User registration endpoint.
 
@@ -63,19 +69,18 @@ async def register(
     except IntegrityError as e:
         print(e)
         db.rollback()
-        raise HTTPException(status_code=400,
-                detail="Username or email already exists")
+        raise HTTPException(status_code=400, detail="Username or email already exists")
     except Exception as e:
         db.rollback()
         print(f"Error: {e}")
-        raise HTTPException(status_code=500,
-                detail="An error occurred while creating the user")
+        raise HTTPException(
+            status_code=500, detail="An error occurred while creating the user"
+        )
 
 
-@router.get("/me", response_model=UserPublic,
-            status_code=status.HTTP_200_OK)
+@router.get("/me", response_model=UserPublic, status_code=status.HTTP_200_OK)
 async def get_current_user_profile(
-    current_user: Annotated[User, Depends(get_current_active_user)]
+    current_user: Annotated[User, Depends(get_current_active_user)],
 ):
     """
     Endpoint to retrieve the authenticated user's details.
@@ -85,13 +90,13 @@ async def get_current_user_profile(
     return current_user
 
 
-@router.patch("/me/update_details",
-                response_model=UserPublic,
-            status_code=status.HTTP_200_OK)
+@router.patch(
+    "/me/update_details", response_model=UserPublic, status_code=status.HTTP_200_OK
+)
 async def update_name_email(
     user_update: UserNameEmailUpdate,
     current_user: Annotated[User, Depends(get_current_active_user)],
-    db: SessionDep
+    db: SessionDep,
 ):
     """
     Endpoint to update the authenticated user's details.
@@ -112,23 +117,25 @@ async def update_name_email(
         return current_user
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=400,
-            detail="Username or email already in use by another user.")
+        raise HTTPException(
+            status_code=400, detail="Username or email already in use by another user."
+        )
     except Exception as e:
         db.rollback()
         print(f"Error updating user: {e}")
-        raise HTTPException(status_code=500,
-            detail="An error occurred while updating the user details.")
+        raise HTTPException(
+            status_code=500, detail="An error occurred while updating the user details."
+        )
 
 
-@router.patch("/me/update_password",
-              status_code=status.HTTP_204_NO_CONTENT)
+@router.patch("/me/update_password", status_code=status.HTTP_204_NO_CONTENT)
 @limiter.limit("10/minute")
 async def update_password(
-        request: Request,
-        password_update: UserPasswordUpdate,
-        current_user: Annotated[User, Depends(get_current_active_user)],
-        db: SessionDep):
+    request: Request,
+    password_update: UserPasswordUpdate,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: SessionDep,
+):
     """
     Endpoint to update the authenticated user's password.
 
@@ -137,17 +144,15 @@ async def update_password(
     If both checks pass, it hashes the new password
     and updates the user's password in the database.
     """
-    if not verify_password(password_update.current_password,
-                           current_user.password):
+    if not verify_password(password_update.current_password, current_user.password):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Incorrect current password."
+            status_code=status.HTTP_403_FORBIDDEN, detail="Incorrect current password."
         )
 
     if password_update.new_password != password_update.confirm_new_password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="New passwords do not match."
+            detail="New passwords do not match.",
         )
 
     hashed_new_pass = get_password_hash(password_update.new_password)
@@ -157,26 +162,31 @@ async def update_password(
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=400,
-            detail="Password update failed: Integrity error.")
+        raise HTTPException(
+            status_code=400, detail="Password update failed: Integrity error."
+        )
     except Exception as e:
         db.rollback()
         print(f"Error updating password: {e}")
-        raise HTTPException(status_code=500,
-            detail="An error occurred while updating the password.")
+        raise HTTPException(
+            status_code=500, detail="An error occurred while updating the password."
+        )
 
 
-@router.delete("/me",
-               status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 @limiter.limit("10/minute")
 async def delete_user(
     request: Request,
     # Changed to accept password via a custom header
-    password_confirmation: Annotated[str, Header(
-        alias="X-Confirm-Password",
-        description="User's current password for deletion confirmation")],
+    password_confirmation: Annotated[
+        str,
+        Header(
+            alias="X-Confirm-Password",
+            description="User's current password for deletion confirmation",
+        ),
+    ],
     current_user: Annotated[User, Depends(get_current_active_user)],
-    db: SessionDep
+    db: SessionDep,
 ):
     """
     Endpoint to delete the authenticated user.
@@ -188,11 +198,13 @@ async def delete_user(
     Any associated movements, categories, planned expenses and
     activity logs that belong to the user will also be deleted.
     """
-    if not verify_password(password_confirmation, # Use the password from the header
-                           current_user.password):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Incorrect password, "
-                                   "cannot delete user account.")
+    if not verify_password(
+        password_confirmation, current_user.password  # Use the password from the header
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Incorrect password, " "cannot delete user account.",
+        )
 
     try:
         db.delete(current_user)
@@ -200,39 +212,41 @@ async def delete_user(
     except Exception as e:
         db.rollback()
         print(f"Error deleting user: {e}")  # for debugging
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail="An unexpected error occurred while deleting"
-                                   " the user account.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred while deleting" " the user account.",
+        )
 
 
-@router.get("/me/dashboard/", response_model=UserDashboard,
-            status_code=status.HTTP_200_OK)
+@router.get(
+    "/me/dashboard/", response_model=UserDashboard, status_code=status.HTTP_200_OK
+)
 async def read_own_items(
-    current_user: Annotated[User, Depends(get_current_active_user)]
+    current_user: Annotated[User, Depends(get_current_active_user)],
 ):
     """
     Endpoint to retrieve the user's overall balance,
     number of movements, and number of categories.
     """
-    total_balance = sum(movement.value for movement
-                        in current_user.movements)
+    total_balance = sum(movement.value for movement in current_user.movements)
     num_categories = len(current_user.categories)
     num_movements = len(current_user.movements)
 
     return UserDashboard(
         balance=total_balance,
         num_categories=num_categories,
-        num_movements=num_movements
+        num_movements=num_movements,
     )
 
 
-@router.get("/me/minijobs_balance/",
-            response_model=MinijobsBalanceSummary,
-            status_code=status.HTTP_200_OK)
+@router.get(
+    "/me/minijobs_balance/",
+    response_model=MinijobsBalanceSummary,
+    status_code=status.HTTP_200_OK,
+)
 async def read_minijobs_balance(
-    current_user: Annotated[User, Depends(get_current_active_user)],
-    db: SessionDep
-    ):
+    current_user: Annotated[User, Depends(get_current_active_user)], db: SessionDep
+):
     """
     Endpoint to retrieve the user's balance for minijobs,
     for the current month and year.
@@ -243,63 +257,67 @@ async def read_minijobs_balance(
         .join(Category)
         .where(Category.category_type == "Minijob")
         .where(Movement.user_id == current_user.id)
-        .where(extract('month', Movement.movement_date) == now.month)
-        .where(extract('year', Movement.movement_date) == now.year)
+        .where(extract("month", Movement.movement_date) == now.month)
+        .where(extract("year", Movement.movement_date) == now.year)
     )
     minijobs_query = db.exec(minijobs_statement).all()
 
-    minijobs_movements_current_month =\
-        [MovementPublic.model_validate(mv) for mv in minijobs_query]
+    minijobs_movements_current_month = [
+        MovementPublic.model_validate(mv) for mv in minijobs_query
+    ]
 
-    minijobs_balance = sum(mv.value for mv in
-                           minijobs_movements_current_month)
+    minijobs_balance = sum(mv.value for mv in minijobs_movements_current_month)
 
     return MinijobsBalanceSummary(
         minijobs_balance=minijobs_balance,
         max_earnings="556€",
         current_month=calendar.month_name[now.month],
-        current_year=now.year
+        current_year=now.year,
     )
 
 
-@router.get("/me/{category_type}/balance/",
-            response_model=CategoryTypeBalanceSummary,
-            status_code=status.HTTP_200_OK)
+@router.get(
+    "/me/{category_type}/balance/",
+    response_model=CategoryTypeBalanceSummary,
+    status_code=status.HTTP_200_OK,
+)
 async def read_category_balance(
     category_type: CategoryType,
     current_user: Annotated[User, Depends(get_current_active_user)],
-    db: SessionDep):
+    db: SessionDep,
+):
     """
     Endpoint to retrieve the user's overall balance for a specific
     category type for the current month and year.
     """
     now = datetime.now()
-    category_statement = (select(Movement)
-                          .join(Category)
-                          .where(Category.category_type == category_type)
-                          .where(Movement.user_id == current_user.id)
-        .where(extract('month', Movement.movement_date) == now.month)
-        .where(extract('year', Movement.movement_date) == now.year)
-                          )
+    category_statement = (
+        select(Movement)
+        .join(Category)
+        .where(Category.category_type == category_type)
+        .where(Movement.user_id == current_user.id)
+        .where(extract("month", Movement.movement_date) == now.month)
+        .where(extract("year", Movement.movement_date) == now.year)
+    )
     category_query = db.exec(category_statement).all()
 
-    category_movements = [MovementPublic.model_validate(movement)
-                            for movement in category_query]
+    category_movements = [
+        MovementPublic.model_validate(movement) for movement in category_query
+    ]
     category_balance = sum(mv.value for mv in category_movements)
 
     return CategoryTypeBalanceSummary(
         category_type=str(category_type),
         balance=category_balance,
         current_month=calendar.month_name[now.month],
-        current_year=now.year
+        current_year=now.year,
     )
 
 
 @router.get("/me/insights", status_code=status.HTTP_200_OK)
 async def read_insights(
-        current_user: Annotated[User, Depends(get_current_active_user)],
-        db: SessionDep
-        ):
+    current_user: Annotated[User, Depends(get_current_active_user)], db: SessionDep
+):
     """
     Endpoint to retrieve the user's insights.
 

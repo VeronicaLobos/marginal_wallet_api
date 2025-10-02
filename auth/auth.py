@@ -35,7 +35,7 @@ from schema.user import User
 load_dotenv()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/token')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
 def verify_password(plain_password, hashed_password):
@@ -46,7 +46,7 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def get_user(username: str, session: SessionDep)  -> User | None:
+def get_user(username: str, session: SessionDep) -> User | None:
     """
     Retrieve a user by username (email in this case) from the database.
     """
@@ -79,13 +79,15 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, os.environ.get("SECRET_KEY"),
-                             algorithm=os.environ.get("ALGORITHM"))
+    encoded_jwt = jwt.encode(
+        to_encode, os.environ.get("SECRET_KEY"), algorithm=os.environ.get("ALGORITHM")
+    )
     return encoded_jwt
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],
-                           session: SessionDep):
+async def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)], session: SessionDep
+):
     """
     Get the current user from the JWT token.
     """
@@ -95,8 +97,11 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, os.environ.get("SECRET_KEY"),
-                             algorithms=[os.environ.get("ALGORITHM")])
+        payload = jwt.decode(
+            token,
+            os.environ.get("SECRET_KEY"),
+            algorithms=[os.environ.get("ALGORITHM")],
+        )
         username = payload.get("sub")
         if username is None:
             raise credentials_exception

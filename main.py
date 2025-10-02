@@ -3,6 +3,7 @@ A FastAPI application for managing marginal income and expenses.
 This application provides endpoints for user registration, authentication,
 and managing categories and movements (transactions).
 """
+
 import os
 from contextlib import asynccontextmanager
 
@@ -16,6 +17,7 @@ from routers import users, categories, movements, planned_expenses, activity_log
 
 
 load_dotenv()
+
 
 # Lifespan context manager to handle startup events
 @asynccontextmanager
@@ -32,7 +34,7 @@ app = FastAPI(
     title="Marginal Wallet API",
     description="API for managing marginal income and expenses.",
     version="1.0.0",
-    lifespan=lifespan  # Use the new lifespan event handler
+    lifespan=lifespan,  # Use the new lifespan event handler
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -45,6 +47,7 @@ templates = Jinja2Templates(directory="templates")
 # from auth.rate_limit import limiter
 # app.state.limiter = limiter
 # app.add_middleware(SlowAPIMiddleware)
+
 
 @app.get("/")
 async def home(request: Request):

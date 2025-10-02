@@ -7,30 +7,25 @@ from auth.auth import get_current_active_user
 from config.database import SessionDep
 from dependencies import check_activity_log_belongs_to_user
 
-from schema.activity_log import (
-    ActivityLog,
-    ActivityLogPublic,
-    ActivityLogUpdate
-)
+from schema.activity_log import ActivityLog, ActivityLogPublic, ActivityLogUpdate
 from schema.movement import Movement
 from schema.user import User
 
 # APIRouter instance for activity log operations
-router = APIRouter(
-    prefix="/activity_logs",
-    tags=["activity_logs"]
-)
+router = APIRouter(prefix="/activity_logs", tags=["activity_logs"])
 
-@router.get("/list", response_model=List[ActivityLogPublic],
-            status_code=status.HTTP_200_OK)
+
+@router.get(
+    "/list", response_model=List[ActivityLogPublic], status_code=status.HTTP_200_OK
+)
 async def list_activity_logs(
     current_user: Annotated[User, Depends(get_current_active_user)],
     db: SessionDep,
-    skip: int = Query(0, ge=0,
-        description="Number of items to skip (offset)"),
-    limit: int = Query(100, ge=1, le=200,
-        description="Max number of items to return (page size)")
-    ):
+    skip: int = Query(0, ge=0, description="Number of items to skip (offset)"),
+    limit: int = Query(
+        100, ge=1, le=200, description="Max number of items to return (page size)"
+    ),
+):
     """
     Retrieve all activity logs for the authenticated user's
     movements with pagination.
@@ -52,12 +47,13 @@ async def list_activity_logs(
     return activity_logs
 
 
-@router.get("/{activity_log_id}",
-            response_model=ActivityLogPublic,
-            status_code=status.HTTP_200_OK)
+@router.get(
+    "/{activity_log_id}",
+    response_model=ActivityLogPublic,
+    status_code=status.HTTP_200_OK,
+)
 async def get_activity_log_by_id(
-    activity_log: Annotated[ActivityLog,
-                    Depends(check_activity_log_belongs_to_user)]
+    activity_log: Annotated[ActivityLog, Depends(check_activity_log_belongs_to_user)],
 ):
     """
     Retrieve a single activity log by its ID,
@@ -66,15 +62,16 @@ async def get_activity_log_by_id(
     return activity_log
 
 
-@router.patch("/{activity_log_id}",
-              response_model=ActivityLogPublic,
-              status_code=status.HTTP_200_OK)
+@router.patch(
+    "/{activity_log_id}",
+    response_model=ActivityLogPublic,
+    status_code=status.HTTP_200_OK,
+)
 async def update_activity_log(
-    activity_log: Annotated[ActivityLog,
-                    Depends(check_activity_log_belongs_to_user)],
+    activity_log: Annotated[ActivityLog, Depends(check_activity_log_belongs_to_user)],
     update_data: ActivityLogUpdate,
-    db: SessionDep
-    ):
+    db: SessionDep,
+):
     """
     Partially updates an existing activity log, ensuring ownership.
     """
@@ -92,23 +89,21 @@ async def update_activity_log(
         print(f"Integrity Error updating activity log: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Error updating activity log due to data integrity issue."
+            detail="Error updating activity log due to data integrity issue.",
         )
     except Exception as e:
         db.rollback()
         print(f"Error updating activity log: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred while updating the activity log."
+            detail="An unexpected error occurred while updating the activity log.",
         )
 
 
-@router.delete("/{activity_log_id}",
-               status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{activity_log_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_activity_log(
-    activity_log: Annotated[ActivityLog,
-                    Depends(check_activity_log_belongs_to_user)],
-    db: SessionDep
+    activity_log: Annotated[ActivityLog, Depends(check_activity_log_belongs_to_user)],
+    db: SessionDep,
 ):
     """
     Delete an activity log by its ID, ensuring ownership.

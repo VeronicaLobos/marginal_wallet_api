@@ -12,19 +12,24 @@ from sqlalchemy.orm import relationship, Mapped
 
 from schema.enums import CategoryType
 
+
 class CategoryBase(SQLModel):
     category_type: CategoryType = Field(nullable=False)
     counterparty: str = Field(nullable=False)
 
+
 class CategoryCreate(CategoryBase):
     pass
+
 
 class CategoryUpdate(CategoryBase):
     category_type: CategoryType | None = None
     counterparty: str | None = None
 
+
 class CategoryPublic(CategoryBase):
     id: int
+
 
 class Category(CategoryBase, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
@@ -36,11 +41,9 @@ class Category(CategoryBase, table=True):
 
     user: Mapped["User"] = Relationship(  # Added Mapped
         back_populates="categories",
-        sa_relationship=relationship("User",
-                            back_populates="categories")
+        sa_relationship=relationship("User", back_populates="categories"),
     )
     movements: Mapped[List["Movement"]] = Relationship(
         back_populates="category",
-        sa_relationship=relationship("Movement",
-                            back_populates="category")
+        sa_relationship=relationship("Movement", back_populates="category"),
     )

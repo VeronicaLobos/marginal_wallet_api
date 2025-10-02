@@ -24,10 +24,7 @@ except Exception as e:
     print(f"Error configuring Gemini API: {e}")
 
 
-def generate_financial_insights(
-    current_user: User,
-    db: SessionDep
-) -> str:
+def generate_financial_insights(current_user: User, db: SessionDep) -> str:
     """
     Generates financial insights for the user based on their movements
     from the last three months.
@@ -51,7 +48,7 @@ def generate_financial_insights(
     if not movements:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No movements found for the last three months."
+            detail="No movements found for the last three months.",
         )
 
     # Prepare the movements data for the prompt
@@ -68,8 +65,9 @@ def generate_financial_insights(
             "payment_method": movement.payment_method,
             "category": category_statement.category_type,
             "stakeholder": category_statement.counterparty,
-            "activity_log": activity_log_statement.description
-                            if activity_log_statement else None
+            "activity_log": (
+                activity_log_statement.description if activity_log_statement else None
+            ),
         }
 
         movements_data_for_prompt.append(movement_data)
@@ -107,7 +105,7 @@ def generate_financial_insights(
 
     # Calls the Google Generative AI API to get insights
     try:
-        model = GenerativeModel('gemini-1.5-flash')
+        model = GenerativeModel("gemini-1.5-flash")
         response = model.generate_content(prompt)
 
         # Checks if the response contains text and return it
@@ -116,12 +114,12 @@ def generate_financial_insights(
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to generate insights from the AI."
+                detail="Failed to generate insights from the AI.",
             )
 
     except Exception as e:
         print(f"Error during insights generation: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred while generating insights."
+            detail="An unexpected error occurred while generating insights.",
         )

@@ -12,18 +12,15 @@ from schema.movement import MovementPublic, Movement, MovementCreate
 from schema.user import User
 
 # APIRouter instance for category operations
-router = APIRouter(
-    prefix="/categories",
-    tags=["categories"]
-)
+router = APIRouter(prefix="/categories", tags=["categories"])
 
-@router.post("/", response_model=CategoryPublic,
-             status_code=status.HTTP_201_CREATED)
+
+@router.post("/", response_model=CategoryPublic, status_code=status.HTTP_201_CREATED)
 def create_category(
     category: CategoryCreate,
     current_user: Annotated[User, Depends(get_current_active_user)],
-    db: SessionDep
-    ):
+    db: SessionDep,
+):
     """
     Endpoint to create a new category.
 
@@ -31,8 +28,7 @@ def create_category(
     of CategoryCreate, which includes the category type (enum)
     and counterparty (to/from whom).
     """
-    db_category = Category(**category.model_dump(),
-                           user_id=current_user.id)
+    db_category = Category(**category.model_dump(), user_id=current_user.id)
     try:
         db.add(db_category)
         db.commit()
@@ -40,26 +36,27 @@ def create_category(
         return db_category
     except IntegrityError as e:
         db.rollback()
-        print(f"IntegrityError: {e}") # for debugging
-        raise HTTPException(status_code=400,
-            detail="Category creation failed: duplicate "
-                   "entry or invalid data.")
+        print(f"IntegrityError: {e}")  # for debugging
+        raise HTTPException(
+            status_code=400,
+            detail="Category creation failed: duplicate " "entry or invalid data.",
+        )
     except Exception as e:
         db.rollback()
         print(f"Error creating category: {e}")
-        raise HTTPException(status_code=500,
-            detail="An error occurred while creating the category.")
+        raise HTTPException(
+            status_code=500, detail="An error occurred while creating the category."
+        )
 
 
-@router.get("/", response_model=List[CategoryPublic],
-                            status_code=status.HTTP_200_OK)
+@router.get("/", response_model=List[CategoryPublic], status_code=status.HTTP_200_OK)
 async def get_categories(
     current_user: Annotated[User, Depends(get_current_active_user)],
     db: SessionDep,
-    skip: int = Query(0, ge=0,
-            description="Number of items to skip (offset)"),
-    limit: int = Query(100, ge=1, le=200,
-            description="Max number of items to return (page size)")
+    skip: int = Query(0, ge=0, description="Number of items to skip (offset)"),
+    limit: int = Query(
+        100, ge=1, le=200, description="Max number of items to return (page size)"
+    ),
 ):
     """
     Endpoint to retrieve all categories for the current user.
@@ -67,23 +64,25 @@ async def get_categories(
     This endpoint returns a list of CategoryPublic instances,
     which include the category type, counterparty, and user ID.
     """
-    categories_statement = (select(Category)
-                            .where(Category.user_id == current_user.id)
-                            .order_by(Category.category_type,
-                                      Category.counterparty)
-                            .offset(skip)
-                            .limit(limit))
+    categories_statement = (
+        select(Category)
+        .where(Category.user_id == current_user.id)
+        .order_by(Category.category_type, Category.counterparty)
+        .offset(skip)
+        .limit(limit)
+    )
     categories = db.exec(categories_statement).all()
 
     return categories
 
 
-@router.get("/{category_id}", response_model=CategoryPublic,
-                                    status_code=status.HTTP_200_OK)
+@router.get(
+    "/{category_id}", response_model=CategoryPublic, status_code=status.HTTP_200_OK
+)
 async def get_category(
     category: Annotated[Category, Depends(check_category_belongs_to_user)],
     current_user: Annotated[User, Depends(get_current_active_user)],
-    db: SessionDep
+    db: SessionDep,
 ):
     """
     Endpoint to retrieve a specific category by its ID.
@@ -96,12 +95,14 @@ async def get_category(
     return category
 
 
-@router.patch("/{category_id}", response_model=CategoryPublic,
-                                    status_code=status.HTTP_200_OK)
+@router.patch(
+    "/{category_id}", response_model=CategoryPublic, status_code=status.HTTP_200_OK
+)
 async def update_category(
     category: Annotated[Category, Depends(check_category_belongs_to_user)],
     update: CategoryUpdate,
-    db: SessionDep):
+    db: SessionDep,
+):
     """
     Endpoint to partially update an existing category.
     """
@@ -115,22 +116,24 @@ async def update_category(
         return category
     except IntegrityError as e:
         db.rollback()
-        raise HTTPException(status_code=400,
-            detail="Category update failed: duplicate "
-                   "entry or invalid data.")
+        raise HTTPException(
+            status_code=400,
+            detail="Category update failed: duplicate " "entry or invalid data.",
+        )
     except Exception as e:
         db.rollback()
         print(f"Error updating category: {e}")
-        raise HTTPException(status_code=500,
-            detail="An error occurred while updating the category.")
+        raise HTTPException(
+            status_code=500, detail="An error occurred while updating the category."
+        )
 
 
-@router.delete("/{category_id}",
-               status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_category(
     category: Annotated[Category, Depends(check_category_belongs_to_user)],
     current_user: Annotated[User, Depends(get_current_active_user)],
-    db: SessionDep):
+    db: SessionDep,
+):
     """
     Endpoint to delete a category.
 
@@ -140,36 +143,42 @@ async def delete_category(
     if category.movements:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete category with associated movements."
+            detail="Cannot delete category with associated movements.",
         )
     try:
         db.delete(category)
         db.commit()
     except IntegrityError as e:
         db.rollback()
-        raise HTTPException(status_code=400,
+        raise HTTPException(
+            status_code=400,
             detail="Category deletion failed: Integrity error, "
-                   "possibly due to foreign key constraints.")
+            "possibly due to foreign key constraints.",
+        )
     except Exception as e:
         db.rollback()
         print(f"Error deleting category: {e}")
-        raise HTTPException(status_code=500,
-            detail="An error occurred while deleting the category.")
+        raise HTTPException(
+            status_code=500, detail="An error occurred while deleting the category."
+        )
 
 
 ### Endpoint to retrieve all movements for a specific category
 
-@router.get("/{category_id}/movements",
-            response_model=List[MovementPublic],
-            status_code=status.HTTP_200_OK)
+
+@router.get(
+    "/{category_id}/movements",
+    response_model=List[MovementPublic],
+    status_code=status.HTTP_200_OK,
+)
 async def get_category_movements(
     category: Annotated[Category, Depends(check_category_belongs_to_user)],
     current_user: Annotated[User, Depends(get_current_active_user)],
     db: SessionDep,
-    skip: int = Query(0, ge=0,
-            description="Number of items to skip (offset)"),
-    limit: int = Query(100, ge=1, le=200,
-            description="Max number of items to return (page size)")
+    skip: int = Query(0, ge=0, description="Number of items to skip (offset)"),
+    limit: int = Query(
+        100, ge=1, le=200, description="Max number of items to return (page size)"
+    ),
 ):
     """
     Endpoint to retrieve all movements for a specific category
@@ -178,25 +187,29 @@ async def get_category_movements(
     This endpoint returns a list of MovementPublic instances,
     which include the movement date, value, currency, and payment method.
     """
-    movements_statement = (select(Movement)
-                           .where(Movement.category_id == category.id)
-                           .where(Movement.user_id == current_user.id)
-                           .order_by(Movement.movement_date.desc())
-                           .offset(skip)
-                           .limit(limit))
+    movements_statement = (
+        select(Movement)
+        .where(Movement.category_id == category.id)
+        .where(Movement.user_id == current_user.id)
+        .order_by(Movement.movement_date.desc())
+        .offset(skip)
+        .limit(limit)
+    )
     movements = db.exec(movements_statement).all()
 
     return movements
 
 
-@router.post("/{category_id}/movements",
-             response_model=MovementPublic,
-             status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{category_id}/movements",
+    response_model=MovementPublic,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_category_movement(
-        category: Annotated[Category, Depends(check_category_belongs_to_user)],
-        movement: MovementCreate,
-        current_user: Annotated[User, Depends(get_current_active_user)],
-        db: SessionDep
+    category: Annotated[Category, Depends(check_category_belongs_to_user)],
+    movement: MovementCreate,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: SessionDep,
 ):
     """
     Endpoint to create a new movement (a transaction).
@@ -211,9 +224,7 @@ async def create_category_movement(
     # the request body into a dictionary and adding the user id
     # and category id to it.
     new_movement = Movement(
-        **movement.model_dump(),
-        user_id=current_user.id,
-        category_id=category.id
+        **movement.model_dump(), user_id=current_user.id, category_id=category.id
     )
     try:
         db.add(new_movement)
@@ -225,12 +236,12 @@ async def create_category_movement(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Movement creation failed: duplicate entry or invalid data."
+            detail="Movement creation failed: duplicate entry or invalid data.",
         )
     except Exception as e:
         db.rollback()
-        print(f"Error creating movement: {e}") # for debugging
+        print(f"Error creating movement: {e}")  # for debugging
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while creating the movement."
+            detail="An error occurred while creating the movement.",
         )

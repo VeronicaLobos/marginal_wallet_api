@@ -6,10 +6,11 @@ TEST_AUTH_USER_PLAIN_PASSWORD = "admin123supersecure"
 TEST_USER_DATA = {
     "name": "jdoe_test",
     "email": "jdoe_test@gmail.com",
-    "password": TEST_AUTH_USER_PLAIN_PASSWORD
+    "password": TEST_AUTH_USER_PLAIN_PASSWORD,
 }
 
 ## Tests default route (no authentication required)
+
 
 def test_home_route(client: TestClient):
     """
@@ -19,7 +20,7 @@ def test_home_route(client: TestClient):
     response = client.get("/")
     assert response.status_code == 200
     # Check that the response is HTML, not JSON
-    assert "text/html" in response.headers['content-type']
+    assert "text/html" in response.headers["content-type"]
 
 
 ## Tests user registration endpoints (no authentication required)
@@ -27,6 +28,7 @@ def test_home_route(client: TestClient):
 # Uses the `get_response_register_test_user` helper function
 # to register a test user with predefined data,
 # and the `get_token_for_test_user` helper function to get an access token.
+
 
 def test_register_user_success(client: TestClient):
     """
@@ -59,9 +61,7 @@ def test_register_user_duplicate_email(client: TestClient):
     response = client.post("/users/register", json=TEST_USER_DATA)
 
     assert response.status_code == 400
-    assert response.json() == {
-        "detail": "Username or email already exists"
-    }
+    assert response.json() == {"detail": "Username or email already exists"}
 
 
 def test_get_access_token_at_login_success(client: TestClient):
@@ -75,10 +75,13 @@ def test_get_access_token_at_login_success(client: TestClient):
     # Registers the test user to ensure they exist in the database
     client.post("/users/register", json=TEST_USER_DATA)
     # Attempts to get the access token for the test user
-    response = client.post("/auth/token", data={
-        "username": TEST_USER_DATA["email"],
-        "password": TEST_USER_DATA["password"]
-    })
+    response = client.post(
+        "/auth/token",
+        data={
+            "username": TEST_USER_DATA["email"],
+            "password": TEST_USER_DATA["password"],
+        },
+    )
 
     assert response.status_code == 200
     assert "access_token" in response.json()
@@ -93,15 +96,16 @@ def test_get_access_token_at_login_failure(client: TestClient):
     Endpoint: POST /auth/token
     """
     # Attempts to get the access token for a user that does not exist
-    response = client.post("/auth/token", data={
-        "username": TEST_USER_DATA["email"],
-        "password": TEST_USER_DATA["password"]
-    })
+    response = client.post(
+        "/auth/token",
+        data={
+            "username": TEST_USER_DATA["email"],
+            "password": TEST_USER_DATA["password"],
+        },
+    )
 
     assert response.status_code == 401
-    assert response.json() == {
-        "detail": "Incorrect username or password"
-    }
+    assert response.json() == {"detail": "Incorrect username or password"}
 
 
 ## Testing user details retrieval endpoints (requires authentication)
@@ -110,9 +114,10 @@ def test_get_access_token_at_login_failure(client: TestClient):
 # the `client` fixture to provide a non-authenticated client,
 # and the `test_auth_user` fixture to provide a pre-registered user.
 
+
 def test_get_current_user_profile_success(
-        auth_client: TestClient,
-        test_auth_user: User):
+    auth_client: TestClient, test_auth_user: User
+):
     """
     * Tests successful retrieval of the current user's details
     * Should return HTTP 200 and the user's profile data
@@ -141,14 +146,10 @@ def test_get_current_user_profile_failure(client: TestClient):
     response = client.get("/users/me")
 
     assert response.status_code == 401
-    assert response.json() == {
-        "detail": "Not authenticated"
-    }
+    assert response.json() == {"detail": "Not authenticated"}
 
 
-def test_update_name_email_success(
-        auth_client: TestClient,
-        test_auth_user: User):
+def test_update_name_email_success(auth_client: TestClient, test_auth_user: User):
     """
     * Tests successful update of the user's name and email.
     * Should return HTTP 200 and the updated user data
@@ -156,13 +157,9 @@ def test_update_name_email_success(
 
     Endpoint: PATCH /users/me/update_details
     """
-    updated_details = {
-        "name": TEST_USER_DATA["name"],
-        "email": TEST_USER_DATA["email"]
-    }
+    updated_details = {"name": TEST_USER_DATA["name"], "email": TEST_USER_DATA["email"]}
 
-    response = auth_client.patch("/users/me/update_details",
-                                 json=updated_details)
+    response = auth_client.patch("/users/me/update_details", json=updated_details)
 
     assert response.status_code == 200
 
@@ -179,24 +176,17 @@ def test_update_name_email_failure(client: TestClient):
 
     Endpoint: PUT /users/me/update_details
     """
-    updated_details = {
-        "name": TEST_USER_DATA["name"],
-        "email": TEST_USER_DATA["email"]
-    }
+    updated_details = {"name": TEST_USER_DATA["name"], "email": TEST_USER_DATA["email"]}
 
-    response = client.patch("/users/me/update_details",
-                            json=updated_details)
+    response = client.patch("/users/me/update_details", json=updated_details)
 
     assert response.status_code == 401
-    assert response.json() == {
-        "detail": "Not authenticated"
-    }
+    assert response.json() == {"detail": "Not authenticated"}
 
 
 def test_update_password_success(
-        auth_client: TestClient,
-        test_auth_user: User,
-        client: TestClient):
+    auth_client: TestClient, test_auth_user: User, client: TestClient
+):
     """
     * Tests successful update of the user's password.
     * Requires the current password from the fixture test_auth_user,
@@ -213,28 +203,26 @@ def test_update_password_success(
     updated_password_data = {
         "current_password": current_password,
         "new_password": new_password,
-        "confirm_new_password": new_password
+        "confirm_new_password": new_password,
     }
 
-    response = auth_client.patch("/users/me/update_password",
-                                 json=updated_password_data)
+    response = auth_client.patch(
+        "/users/me/update_password", json=updated_password_data
+    )
 
     assert response.status_code == 204
 
-    response = client.post("/auth/token", data={
-        "username": test_auth_user.email,
-        "password": test_auth_user.password
-    })
+    response = client.post(
+        "/auth/token",
+        data={"username": test_auth_user.email, "password": test_auth_user.password},
+    )
     assert response.status_code == 401
-    assert response.json() == {
-        "detail": "Incorrect username or password"
-    }
-
+    assert response.json() == {"detail": "Incorrect username or password"}
 
 
 def test_update_password_incorrect_current_password(
-        auth_client: TestClient,
-        test_auth_user: User):
+    auth_client: TestClient, test_auth_user: User
+):
     """
     * Tests update of the user's password with an incorrect
     current password.
@@ -247,21 +235,20 @@ def test_update_password_incorrect_current_password(
     updated_password_data = {
         "current_password": incorrect_current_password,
         "new_password": new_password,
-        "confirm_new_password": new_password
+        "confirm_new_password": new_password,
     }
 
-    response = auth_client.patch("/users/me/update_password",
-                                 json=updated_password_data)
+    response = auth_client.patch(
+        "/users/me/update_password", json=updated_password_data
+    )
 
     assert response.status_code == 403
-    assert response.json() == {
-        "detail": "Incorrect current password."
-    }
+    assert response.json() == {"detail": "Incorrect current password."}
 
 
 def test_update_password_new_passwords_mismatch(
-        auth_client: TestClient,
-        test_auth_user: User):
+    auth_client: TestClient, test_auth_user: User
+):
     """
     * Tests update of the user's password with mismatched
     new passwords.
@@ -274,22 +261,20 @@ def test_update_password_new_passwords_mismatch(
     updated_password_data = {
         "current_password": current_password,
         "new_password": new_password,
-        "confirm_new_password": new_password + "_mismatch"
+        "confirm_new_password": new_password + "_mismatch",
     }
 
-    response = auth_client.patch("/users/me/update_password",
-                                 json=updated_password_data)
+    response = auth_client.patch(
+        "/users/me/update_password", json=updated_password_data
+    )
 
     assert response.status_code == 400
-    assert response.json() == {
-        "detail": "New passwords do not match."
-    }
+    assert response.json() == {"detail": "New passwords do not match."}
 
 
 def test_delete_user_success(
-        auth_client: TestClient,
-        test_auth_user: User,
-        client: TestClient):
+    auth_client: TestClient, test_auth_user: User, client: TestClient
+):
     """
     * Tests successful deletion of the user's account.
     * Requires the current password from the fixture
@@ -305,14 +290,12 @@ def test_delete_user_success(
     response = auth_client.delete("/users/me", headers=delete_headers)
     assert response.status_code == 204
 
-    response = client.post("/auth/token", data={
-        "username": test_auth_user.name,
-        "password": test_auth_user.password
-    })
+    response = client.post(
+        "/auth/token",
+        data={"username": test_auth_user.name, "password": test_auth_user.password},
+    )
     assert response.status_code == 401
-    assert response.json() == {
-        "detail": "Incorrect username or password"
-    }
+    assert response.json() == {"detail": "Incorrect username or password"}
 
 
 def test_delete_user_failure(client: TestClient):
@@ -326,14 +309,10 @@ def test_delete_user_failure(client: TestClient):
     response = client.delete("/users/me", headers=delete_headers)
 
     assert response.status_code == 401
-    assert response.json() == {
-        "detail": "Not authenticated"
-    }
+    assert response.json() == {"detail": "Not authenticated"}
 
 
-def test_dashboard_summary_initial(
-        auth_client: TestClient,
-        test_auth_user: User):
+def test_dashboard_summary_initial(auth_client: TestClient, test_auth_user: User):
     """
     * Tests the initial dashboard summary for a newly created user.
     * Should return HTTP 200 and a dashboard summary with 0 balance,
@@ -351,10 +330,7 @@ def test_dashboard_summary_initial(
     assert dashboard_summary["num_movements"] == 0
 
 
-def test_minijobs_balance_initial(
-        auth_client: TestClient,
-        test_auth_user: User
-):
+def test_minijobs_balance_initial(auth_client: TestClient, test_auth_user: User):
     """
     * Tests the initial minijobs balance summary for a
     newly created user.

@@ -22,14 +22,17 @@ from sqlalchemy.orm import relationship, Mapped
 
 from schema.enums import PaymentMethodType, CurrencyType
 
+
 class MovementBase(SQLModel):
     movement_date: date = Field(nullable=False)
     value: float = Field(nullable=False)
     currency: CurrencyType
     payment_method: PaymentMethodType
 
+
 class MovementCreate(MovementBase):
     pass
+
 
 class MovementUpdate(SQLModel):
     movement_date: Optional[date] = Field(default=None)
@@ -38,8 +41,10 @@ class MovementUpdate(SQLModel):
     payment_method: Optional[PaymentMethodType] = Field(default=None)
     category_id: Optional[int] = None
 
+
 class MovementPublic(MovementBase):
     id: int
+
 
 class Movement(MovementBase, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
@@ -53,18 +58,18 @@ class Movement(MovementBase, table=True):
 
     user: Mapped["User"] = Relationship(
         back_populates="movements",
-        sa_relationship=relationship("User",
-                                     back_populates="movements")
+        sa_relationship=relationship("User", back_populates="movements"),
     )
     category: Mapped["Category"] = Relationship(
         back_populates="movements",
-        sa_relationship=relationship("Category",
-                                     back_populates="movements")
+        sa_relationship=relationship("Category", back_populates="movements"),
     )
     activity_log: Optional["ActivityLog"] = Relationship(
         back_populates="movement",
-        sa_relationship=relationship("ActivityLog",
-                                     back_populates="movement",
-                                     uselist=False,
-                                     cascade="all, delete-orphan")
+        sa_relationship=relationship(
+            "ActivityLog",
+            back_populates="movement",
+            uselist=False,
+            cascade="all, delete-orphan",
+        ),
     )

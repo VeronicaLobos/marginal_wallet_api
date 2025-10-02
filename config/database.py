@@ -25,12 +25,14 @@ load_dotenv()
 DATABASE_URL = os.environ.get("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
 
+
 def create_db_and_tables():
     """
     Create the database and tables if they do not exist.
     """
     SQLModel.metadata.create_all(engine)
     print("Database tables created (or checked)")
+
 
 def get_session() -> Generator[Session, None, None]:
     """
@@ -39,5 +41,6 @@ def get_session() -> Generator[Session, None, None]:
     """
     with Session(engine) as session:
         yield session
+
 
 SessionDep = Annotated[Session, Depends(get_session)]
