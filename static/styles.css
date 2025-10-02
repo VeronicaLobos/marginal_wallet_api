@@ -1,0 +1,266 @@
+:root {
+    --primary-color: #4a90e2;
+    --secondary-color: #50e3c2;
+    --background-color: #f8f9fa;
+    --card-background: #ffffff;
+    --text-color: #333333;
+    --light-text-color: #6c757d;
+    --border-color: #e0e0e0;
+    --shadow-color: rgba(0, 0, 0, 0.08);
+}
+
+body {
+    font-family: 'Inter', sans-serif; /* Modern sans-serif font */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.hero-section {
+    background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://via.placeholder.com/1920x1080/4a90e2/ffffff?text=Financial+Freedom') center center / cover no-repeat;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.hero-section h1 {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: white; /* Override primary-color for hero h1 */
+    margin-bottom: 1.5rem;
+}
+
+.hero-section p.lead {
+    font-size: 1.5rem;
+    font-weight: 300;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.hero-section .btn-primary {
+    background-color: white;
+    border-color: white;
+    color: var(--primary-color);
+}
+
+.hero-section .btn-primary:hover {
+    background-color: #f0f0f0;
+    border-color: #f0f0f0;
+    color: var(--primary-color);
+}
+
+.hero-section .btn-outline-light {
+    border-color: white;
+    color: white;
+}
+
+.hero-section .btn-outline-light:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+/* General container and layout adjustments */
+.container {
+    max-width: 960px;
+    padding: 2rem;
+    background-color: transparent; /* Container itself doesn't need background */
+    box-shadow: none; /* Remove default shadow */
+}
+
+.vh-100 {
+    min-height: 100vh;
+}
+
+h1 {
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 2rem;
+}
+
+h2 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+/* Card styles for a cleaner look */
+.card {
+    border: none;
+    border-radius: 12px;
+    background-color: var(--card-background);
+    box-shadow: 0 6px 16px var(--shadow-color);
+    padding: 1.5rem;
+}
+
+.card-body {
+    padding: 0;
+}
+
+/* Button styles - flatter and more modern */
+.btn {
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #3a7bd5;
+    border-color: #3a7bd5;
+}
+
+.btn-secondary {
+    background-color: var(--light-text-color);
+    border-color: var(--light-text-color);
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #5a6268;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+    border-color: #e74c3c;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+    border-color: #c0392b;
+}
+
+.btn-info {
+    background-color: #3498db;
+    border-color: #3498db;
+}
+
+.btn-info:hover {
+    background-color: #217dbb;
+    border-color: #217dbb;
+}
+
+.btn-success {
+    background-color: #2ecc71;
+    border-color: #2ecc71;
+}
+
+.btn-success:hover {
+    background-color: #27ae60;
+    border-color: #27ae60;
+}
+
+/* Form control adjustments */
+.form-control, .form-select {
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    border-color: var(--border-color);
+    box-shadow: none;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(var(--primary-color-rgb), 0.25);
+}
+
+/* Text colors */
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+.text-danger {
+    color: #e74c3c !important;
+}
+
+.text-success {
+    color: #2ecc71 !important;
+}
+
+.text-secondary {
+    color: var(--light-text-color) !important;
+}
+
+/* Specific element overrides */
+.profile-info p strong {
+    color: var(--primary-color);
+}
+
+.insights-content p {
+    white-space: pre-wrap;
+    font-size: 1.1rem;
+    color: var(--text-color);
+}
+
+.dashboard-grid .card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.dashboard-grid .card:hover {
+    transform: translateY(-5px);
+}
+
+.dashboard-item h2 {
+    color: var(--primary-color);
+}
+
+.dashboard-item p {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.movements-list .list-group-item {
+    background-color: var(--card-background);
+    border-color: var(--border-color);
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.movements-list .list-group-item:last-child {
+    border-bottom: none;
+}
+
+/* Media Queries for fine-tuning responsiveness */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    h1 {
+        font-size: 2.2rem;
+    }
+
+    .card {
+        padding: 1rem;
+    }
+
+    .btn {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    h1 {
+        font-size: 1.8rem;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+    }
+}
