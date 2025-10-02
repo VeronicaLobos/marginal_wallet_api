@@ -6,7 +6,6 @@ from typing import Annotated
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, status, Header, Request
 from fastapi.security import OAuth2PasswordRequestForm
-import json
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select, extract
 
@@ -27,7 +26,7 @@ from schema.user import (UserPublic, User, UserCreate,
 from schema.category import Category
 from schema.movement import Movement, MovementPublic
 
-from google.generativeai import GenerativeModel
+from services.financial_insights import generate_financial_insights
 
 load_dotenv()
 
@@ -309,102 +308,5 @@ async def read_insights(
     income sources, and financial trends for the last
     three months.
     """
-    # Ensures the API key is set in the environment
-    try:
-        if not os.getenv("GOOGLE_API_KEY"):
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Google API key not set in environment variables."
-            )
-    except Exception as e:
-        print(f"Error configuring Google Generative AI: {e}")
-
-    # Fetches all movements for the user from the last three months
-    last_three_months = datetime.now() - timedelta(days=90)
-    movements_statement = ((select(Movement)
-                .where(Movement.user_id == current_user.id)
-                .where(Movement.movement_date >= last_three_months)
-                .order_by(Movement.movement_date)))
-    movements = db.exec(movements_statement).all()
-
-    if not movements:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No movements found for the last three months."
-        )
-
-    # Prepares the movements data for the prompt
-    # which will include the category type, counterparty,
-    # all the movement details except the user_id and movement_id,
-    # the date formatted as YYYY-MM-DD,
-    # and activity_log if there is one associated with the movement
-    movements_data_for_prompt = []
-
-    for movement in movements:
-        category_statement = db.get(Category, movement.category_id)
-        activity_log_statement = db.get(ActivityLog, movement.id)
-
-        movement_data = {
-            "date": movement.movement_date.strftime("%Y-%m-%d"),
-            "value": movement.value,
-            "currency": movement.currency,
-            "payment_method": movement.payment_method,
-            "category": category_statement.category_type,
-            "stakeholder": category_statement.counterparty,
-            "activity_log": activity_log_statement.description
-                            if activity_log_statement else None
-        }
-
-        movements_data_for_prompt.append(movement_data)
-
-    # Converts the list of dictionaries to a JSON string for stable parsing
-    json_data = json.dumps(movements_data_for_prompt, indent=2)
-
-    # Create the prompt for the Google Generative AI
-    prompt = f"""
-        You are a financial analyst providing a summary of a user's
-        recent financial movements.
-
-            **Your final output MUST be a text-based financial summary.
-            DO NOT provide any code or a Python function in your response.**
-            Act as a financial analyst and provide the summary as prose.
-
-            Analyze the following financial data for the last three months.
-            The data is a list of dictionaries, where each dictionary
-            represents a financial movement with its date, value, counterparty,
-            and category. Some movements may also have an 'activity_log' with
-            notes and a timestamp, providing additional context.
-
-            **Instructions:**
-            1.  Provide a general overview of the user's financial activity for
-            the last three months, incorporating details from the activity logs
-            where relevant.
-            2.  Calculate and summarize the total income (positive values) and
-            total expenses (negative values) for each unique stakeholder.
-            3.  The final output should be a clear, concise, and easy-to-read
-            summary. Format the summary using bullet points or a numbered list.
-
-            **Financial Data:**
-            {json_data}
-        """
-
-    # Call the Google Generative AI API to get insights
-    try:
-        model = GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(prompt)
-
-        # Check if the response contains text and return it
-        if response.text:
-            return {"insights": response.text}
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to generate insights from the AI."
-            )
-
-    except Exception as e:
-        print(f"Error during insights generation: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred while generating insights."
-        )
+    insights_text = generate_financial_insights(current_user, db)
+    return {"insights": insights_text}
