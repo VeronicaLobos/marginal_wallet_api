@@ -8,9 +8,10 @@ on the value being positive or negative, respectively.
 """
 
 from typing import Annotated
+from datetime import datetime, timedelta
 from fastapi import APIRouter, status, Depends, HTTPException, Query
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import select
+from sqlmodel import select, extract
 
 from auth.auth import get_current_active_user
 from config.database import SessionDep
@@ -35,6 +36,8 @@ router = APIRouter(
 async def list_movements(
         current_user: Annotated[User, Depends(get_current_active_user)],
         db: SessionDep,
+        sort_order: str = Query("desc", description="Sort order for movement date (asc or desc)"),
+        time_filter: str = Query("last_month", description="Filter movements by time (last_month, last_3_months, all)"),
         skip: int = Query(0, ge=0,
             description="Number of items to skip (offset)"),
         limit: int = Query(100, ge=1, le=200,
@@ -48,11 +51,28 @@ async def list_movements(
     authenticated user.
     When no results are found, it returns an empty list.
     """
-    statement = (select(Movement)
-                 .where(Movement.user_id == current_user.id)
-                 .order_by(Movement.movement_date.desc())
-                 .offset(skip)
-                 .limit(limit))
+    statement = select(Movement).where(Movement.user_id == current_user.id)
+
+    # Apply time filter
+    now = datetime.now()
+    if time_filter == "last_month":
+        statement = statement.where(
+            extract('month', Movement.movement_date) == now.month,
+            extract('year', Movement.movement_date) == now.year
+        )
+    elif time_filter == "last_3_months":
+        three_months_ago = now - timedelta(days=90)
+        statement = statement.where(Movement.movement_date >= three_months_ago)
+    elif time_filter == "all":
+        pass # No time filter applied
+
+    # Apply sort order
+    if sort_order == "asc":
+        statement = statement.order_by(Movement.movement_date.asc())
+    else: # Default to desc
+        statement = statement.order_by(Movement.movement_date.desc())
+
+    statement = statement.offset(skip).limit(limit)
     movements = db.exec(statement).all()
 
     return movements

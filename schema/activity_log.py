@@ -5,7 +5,7 @@ Activity logs are used to optionally track changes or
 notes associated with transactions in the application.
 
 Users can create, update, and retrieve activity logs
-for transactions.
+for movements (transactions).
 
 TODO: Activity logs can be deleted. If a transaction
 with an activity log is deleted, the activity log
