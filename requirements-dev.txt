@@ -1,0 +1,10 @@
+-r requirements.txt
+
+#Testing
+pytest
+
+#Formatting
+black
+
+#Security
+bandit
