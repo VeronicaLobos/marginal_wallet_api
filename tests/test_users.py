@@ -18,9 +18,8 @@ def test_home_route(client: TestClient):
     """
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {
-        "greeting": "Welcome to the Marginal Wallet API!"
-    }
+    # Check that the response is HTML, not JSON
+    assert "text/html" in response.headers['content-type']
 
 
 ## Tests user registration endpoints (no authentication required)

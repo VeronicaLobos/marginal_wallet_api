@@ -13,14 +13,20 @@ Fixtures in this module include:
   used for authentication in tests.
 * auth_client: A TestClient that is authenticated with a test user.
 """
+import sys
+import os
+
+# Set a test-specific database URL environment variable BEFORE importing the app.
+# This ensures that when the application is imported, its database engine
+# is created using this test database, not the one from the .env file.
+os.environ['DATABASE_URL'] = 'sqlite:///./test.db'
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 
 # Ensure the project root is in the path for imports
-import sys
-import os
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_dir, os.pardir))
 sys.path.insert(0, project_root)
