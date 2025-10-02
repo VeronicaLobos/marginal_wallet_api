@@ -6,6 +6,22 @@ Marginal Wallet is a robust RESTful API designed to help users manage their pers
 
 This project was developed as a graduation requirement, demonstrating a full development lifecycle from an initial Minimum Viable Product (MVP) to a more advanced Version 2 with modern DevOps practices, AI integration, and a functional frontend.
 
+## Table of Contents
+
+- [Features](#features)
+  - [Core Features (MVP)](#core-features-mvp)
+  - [Advanced Features (V2)](#advanced-features-v2)
+- [Tech Stack](#tech-stack)
+- [CI/CD Pipeline](#cicd-pipeline)
+  - [Continuous Integration (CI)](#continuous-integration-ci)
+  - [Continuous Deployment (CD)](#continuous-deployment-cd)
+- [API Documentation](#api-documentation)
+- [Getting Started: Local Development](#getting-started-local-development)
+- [Running with Docker](#running-with-docker)
+- [Code Quality & Testing](#code-quality--testing)
+- [Automated Deployment to Google Cloud Run](#automated-deployment-to-google-cloud-run)
+---
+
 ## Features
 
 The application is structured with a clear separation of features developed across two main versions.
@@ -39,6 +55,7 @@ The application is structured with a clear separation of features developed acro
 - **Cloud Deployment**: Experience deploying the application to cloud platforms, including Render (MVP), Google Cloud Run (V2), and AWS EC2 (V2).
 
 - **Templated Frontend**: A functional frontend prototype built with Jinja2 and Bootstrap to demonstrate the API's capabilities.
+---
 
 ## Tech Stack
 
@@ -55,6 +72,7 @@ The application is structured with a clear separation of features developed acro
 | Containerization | Docker, Docker Compose   |
 | CI/CD | GitHub Actions           |
 | Frontend | Jinja2 Templating, Bootstrap |
+---
 
 ## CI/CD Pipeline
 This project utilizes a full CI/CD pipeline managed by GitHub Actions. The pipeline automates testing and deployment, ensuring code quality and a streamlined release process.
@@ -93,6 +111,7 @@ Secret environment variables (like database URLs and API keys) are securely mana
 This API provides comprehensive, interactive documentation via Swagger UI. Once the application is running, you can explore and test all available endpoints directly from your browser.
 
 **Swagger UI**: http://localhost:8000/docs
+---
 
 ## Getting Started: Local Development
 
@@ -177,6 +196,7 @@ docker-compose up --build
 ```
 
 The application will be accessible at http://localhost:8000.
+---
 
 ## Code Quality & Testing
 
@@ -212,3 +232,58 @@ To run the scanner on the application code (excluding tests and dependencies):
 ```
 bandit -r . -x ./env,./tests
 ```
+---
+
+## Automated Deployment to Google Cloud Run
+
+This project is configured for automated deployment to Google Cloud Run via GitHub Actions.
+
+### 1. Prerequisites
+
+- A Google Cloud Platform (GCP) project
+- A Docker Hub account
+
+### 2. Google Cloud Setup
+
+#### Enable APIs
+
+In your GCP project, enable the following APIs:
+- Cloud Run Admin API
+- Cloud SQL Admin API
+- Compute Engine API
+
+#### Create a PostgreSQL Database
+
+1. Go to **Cloud SQL** and create a new PostgreSQL 17 instance.
+2. Set a strong password for the `postgres` user. Save this password.
+3. Under **Connections**, enable **Public IP** and add `0.0.0.0/0` as an authorized network.
+4. Once the instance is created, go to the **Databases** tab and create a new database named `marginal-wallet`.
+
+#### Create a Service Account
+
+1. Go to **IAM & Admin** → **Service Accounts**.
+2. Create a new service account (e.g., `github-actions-deployer`).
+3. Grant it the following roles:
+   - **Cloud Run Admin**
+   - **Cloud SQL Client**
+4. After creating it, go to the **Keys** tab for the service account, create a new JSON key, and download it.
+
+### 3. GitHub Repository Configuration
+
+Navigate to your repository's **Settings** → **Secrets and variables** → **Actions** and add the following secrets:
+
+| Secret Name | Description |
+|-------------|-------------|
+| `DOCKERHUB_USERNAME` | Your Docker Hub username. |
+| `DOCKERHUB_TOKEN` | A Docker Hub Access Token. |
+| `GCP_PROJECT_ID` | The ID of your Google Cloud project. |
+| `GCP_SA_KEY` | The full content of the downloaded Service Account JSON key file. |
+| `PROD_DATABASE_URL` | The connection string for your Cloud SQL database: `postgresql://postgres:YOUR_DB_PASSWORD@DB_PUBLIC_IP/marginal-wallet` |
+| `SECRET_KEY` | Your application's secret key for JWT signing. |
+| `ALGORITHM` | The JWT algorithm (e.g., `HS256`). |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | The token expiration time (e.g., `30`). |
+| `GOOGLE_API_KEY` | Your API key for the Google Gemini service. |
+
+### 4. Trigger Deployment
+
+The deployment workflow will run automatically on every push or merge to the `main` branch.
