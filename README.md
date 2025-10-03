@@ -1,25 +1,22 @@
-[![CI/CD Pipeline Status](https://github.com/VeronicaLobos/marginal_wallet_mvp/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/VeronicaLobos/marginal_wallet_mvp/actions)
-
 # Marginal Wallet API
 
 Marginal Wallet is a robust RESTful API designed to help users manage their personal finances, with a focus on tracking non-fixed income and expenses. Built with Python and FastAPI, it provides a secure and feature-rich backend for a personal finance application.
 
 This project was developed as a graduation requirement, demonstrating a full development lifecycle from an initial Minimum Viable Product (MVP) to a more advanced Version 2 with modern DevOps practices, AI integration, and a functional frontend.
 
+---
+
 ## Table of Contents
 
 - [Features](#features)
-  - [Core Features (MVP)](#core-features-mvp)
-  - [Advanced Features (V2)](#advanced-features-v2)
 - [Tech Stack](#tech-stack)
 - [CI/CD Pipeline](#cicd-pipeline)
-  - [Continuous Integration (CI)](#continuous-integration-ci)
-  - [Continuous Deployment (CD)](#continuous-deployment-cd)
 - [API Documentation](#api-documentation)
 - [Getting Started: Local Development](#getting-started-local-development)
 - [Running with Docker](#running-with-docker)
 - [Code Quality & Testing](#code-quality--testing)
 - [Automated Deployment to Google Cloud Run](#automated-deployment-to-google-cloud-run)
+
 ---
 
 ## Features
@@ -29,99 +26,82 @@ The application is structured with a clear separation of features developed acro
 ### Core Features (MVP)
 
 - **Secure User Authentication**: User registration and login system using JWT (JSON Web Tokens) for secure, token-based authentication. Passwords are fully encrypted using bcrypt.
-
 - **User Management**: Endpoints for users to manage their profiles, including updating personal details and changing passwords.
-
-- **Category Management**: Full CRUD (Create, Read, Update, Delete) operations for user-defined income and expense categories (e.g., Minijob, Freelance, Expenses).
-
-- **Transaction (Movement) Tracking**: Full CRUD operations for financial movements linked to user-defined categories. Each transaction includes amount, currency, payment method, and date.
-
+- **Category Management**: Full CRUD (Create, Read, Update, Delete) operations for user-defined income and expense categories.
+- **Transaction (Movement) Tracking**: Full CRUD operations for financial movements linked to categories.
 - **Planned Expenses**: Functionality for users to create and manage future planned expenses.
-
 - **Activity Logs**: Optional logs can be attached to transactions to track notes or changes.
 
 ### Advanced Features (V2)
 
-- **AI-Powered Financial Insights**: Integration with the Google Gemini API (`gemini-1.5-flash`) to provide users with an AI-generated natural language summary of their financial activity.
+- **AI-Powered Financial Insights**: Integration with the Google Gemini API (gemini-1.5-flash) to provide users with an AI-generated natural language summary of their financial activity.
+- **API Rate Limiting**: Implemented to prevent abuse and enhance security on sensitive endpoints.
+- **Unit Testing & CI/CD**: A comprehensive test suite using pytest integrated into a Continuous Integration / Continuous Deployment (CI/CD) pipeline.
+- **Pre-Commit Hooks**: A Git pre-commit hook to run the test suite automatically before allowing a commit.
+- **Containerization with Docker**: Fully containerized application using Docker and Docker Compose.
+- **Cloud Deployment**: Experience deploying to Render (MVP), Google Cloud Run (V2), and AWS EC2 (V2).
+- **Templated Frontend**: A functional frontend prototype built with Jinja2 and Bootstrap.
 
-- **API Rate Limiting**: Implemented rate limiting on sensitive endpoints (like login and registration) to prevent abuse and enhance security.
-
-- **Unit Testing & CI/CD**:  A comprehensive test suite using `pytest` integrated into a Continuous Integration / Continuous Deployment (CI/CD) pipeline.
-
-- **Pre-Commit Hooks**: A Git pre-commit hook is configured to run the test suite automatically before allowing a commit.
-
-- **Containerization with Docker**: The application is fully containerized using Docker and Docker Compose, allowing for consistent and reproducible environments.
-
-- **Cloud Deployment**: Experience deploying the application to cloud platforms, including Render (MVP), Google Cloud Run (V2), and AWS EC2 (V2).
-
-- **Templated Frontend**: A functional frontend prototype built with Jinja2 and Bootstrap to demonstrate the API's capabilities.
 ---
 
 ## Tech Stack
 
-| Component | Technology               |
+| Component | Technology |
 |-----------|--------------------------|
 | Backend | Python 3.12, FastAPI, Uvicorn, Gunicorn |
-| Database | PostgreSQL               |
+| Database | PostgreSQL |
 | ORM & Data | SQLModel, SQLAlchemy, Pydantic |
-| Migrations | Alembic                  |
+| Migrations | Alembic |
 | Authentication | JWT (PyJWT), OAuth2, Passlib (bcrypt) |
-| AI Integration | Google Gemini API        |
-| Testing | Pytest, Bandit           |
-| Formatting & Linting | Black                   |
-| Containerization | Docker, Docker Compose   |
-| CI/CD | GitHub Actions           |
+| AI Integration | Google Gemini API |
+| Testing | Pytest, Bandit |
+| Formatting | Black |
+| Containerization | Docker, Docker Compose |
+| CI/CD | GitHub Actions |
 | Frontend | Jinja2 Templating, Bootstrap |
+
 ---
 
 ## CI/CD Pipeline
-This project utilizes a full CI/CD pipeline managed by GitHub Actions. The pipeline automates testing and deployment, ensuring code quality and a streamlined release process.
 
-The pipeline consists of two main stages:
+This project utilizes a full CI/CD pipeline managed by GitHub Actions to automate testing and deployment.
 
 ### Continuous Integration (CI)
-These jobs run on every *push* and *pull request* to the main branch to validate changes.
 
-* **Run Unit Tests**: Executes the entire `pytest` suite against a dedicated SQLite database to ensure all business logic and endpoints work as expected.
+Runs on every push and pull request to the main branch.
 
-* **Check Code Style**: Uses the `black` code formatter 🍰✨ to verify that all Python code adheres to a consistent and clean style.
-
-* **Run Security Scan**: Employs the `bandit`  security scanner to analyze the codebase for common security vulnerabilities.
+- **Run Unit Tests**: Executes the pytest suite against a dedicated SQLite database.
+- **Check Code Style**: Uses black to verify consistent code formatting.
+- **Run Security Scan**: Uses bandit to analyze the codebase for common vulnerabilities.
 
 ### Continuous Deployment (CD)
-This job runs *only* when changes are pushed (or merged) to the main branch, and only after all CI jobs have passed.
 
-* *Deploy to Google Cloud Run:*
+Runs only on a push/merge to the main branch after all CI jobs pass.
 
-1. Authenticates with Google Cloud using a service account.
+- Authenticates with Google Cloud and Docker Hub.
+- Builds and pushes a new Docker image to Docker Hub.
+- Connects to the production database and applies alembic migrations.
+- Deploys the new image to Google Cloud Run, updating the live service.
 
-2. Logs in to Docker Hub.
+Secrets are managed securely via GitHub Secrets.
 
-3. Builds a new Docker image of the application and pushes it to the Docker Hub registry.
-
-4. Connects to the production database and applies any new alembic migrations.
-
-5. Deploys the newly published Docker image to Google Cloud Run, updating the live service.
-
-Secret environment variables (like database URLs and API keys) are securely managed via GitHub Secrets, ensuring sensitive information is not exposed in the codebase.
-
+---
 
 ## API Documentation
 
-This API provides comprehensive, interactive documentation via Swagger UI. Once the application is running, you can explore and test all available endpoints directly from your browser.
+Interactive API documentation is available via Swagger UI. Once the application is running, access it at:
 
 **Swagger UI**: http://localhost:8000/docs
+
 ---
 
 ## Getting Started: Local Development
-
-Follow these instructions to set up and run the project locally.
 
 ### 1. Prerequisites
 
 - Python 3.12+
 - PostgreSQL installed and running
-- Docker and Docker Compose (Optional, for containerized setup)
+- Docker and Docker Compose (Optional)
 
 ### 2. Clone the Repository
 
@@ -137,140 +117,144 @@ cd marginal_wallet_mvp
 python3 -m venv env
 source env/bin/activate
 
-# Install all required packages (production + development)
+# Install all packages (production + development)
 pip install -r requirements-dev.txt
 ```
 
 ### 4. Database and Environment Configuration
 
-**Create a PostgreSQL Database**: Create a new PostgreSQL database named `marginal-wallet`.
+#### Create the PostgreSQL Database
 
-**Configure Environment Variables**: Create a `.env` file in the project root with the following content, filling in your specific details.
+You can use a GUI tool or the psql command-line interface. If psql is not in your PATH, you may need to add it first (e.g., `export PATH="/Library/PostgreSQL/17/bin:$PATH"` on macOS).
+
+```bash
+# Connect as the postgres superuser
+psql -U postgres
+```
+
+```sql
+-- Inside the psql shell
+
+-- Drop the database if it exists from a previous run
+DROP DATABASE IF EXISTS "marginal-wallet";
+
+-- Create the clean database
+CREATE DATABASE "marginal-wallet";
+
+-- Exit the psql shell
+\q
+```
+
+#### Configure Environment Variables
+
+Create a `.env` file in the project root with the following content, filling in your details:
 
 ```env
 # For local development (uvicorn)
 DATABASE_URL="postgresql://YOUR_POSTGRES_USER:YOUR_POSTGRES_PASSWORD@localhost:5432/marginal-wallet"
 
-# --- General Settings ---
+# General Settings
 SECRET_KEY="a-strong-and-random-secret-key"
 ALGORITHM="HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 GOOGLE_API_KEY="your-google-api-key-here"
 ```
 
-> **Note**: You need to obtain a `GOOGLE_API_KEY` from Google AI Studio to use the financial insights feature.
+**Note**: Obtain a `GOOGLE_API_KEY` from Google AI Studio.
 
 ### 5. Run Database Migrations
 
-Apply all database migrations to set up your schema:
+Apply all migrations to set up your schema:
+
 ```bash
+alembic upgrade head
+
+# To create new migrations in the future, use:
+alembic revision --autogenerate -m "Your migration message"
 alembic upgrade head
 ```
 
 ### 6. Run the Application
 
-You can now start the FastAPI development server:
+Start the FastAPI development server:
+
 ```bash
 uvicorn main:app --reload
 ```
 
 The application will be available at http://localhost:8000.
 
+---
+
 ## Running with Docker
 
-For a consistent and isolated environment, you can use Docker Compose.
-
-**Configure `.env` for Docker**: In your `.env` file, comment out the localhost URL and use the `host.docker.internal` URL. This special DNS name allows the container to connect to the PostgreSQL database running on your host machine.
+Configure your `.env` file to point to your host machine's database. `host.docker.internal` is a special DNS name that lets the container connect to services on your computer.
 
 ```env
-# For local development (uvicorn)
-# DATABASE_URL="postgresql://YOUR_POSTGRES_USER:YOUR_POSTGRES_PASSWORD@localhost:5432/marginal-wallet"
-
 # For Docker container connecting to a local host DB
 DATABASE_URL="postgresql://YOUR_POSTGRES_USER:YOUR_POSTGRES_PASSWORD@host.docker.internal:5432/marginal-wallet"
 ```
 
-Build and run the container:
+Then, build and run the container:
+
 ```bash
 docker-compose up --build
 ```
 
-The application will be accessible at http://localhost:8000.
 ---
 
 ## Code Quality & Testing
 
-This project uses a suite of tools to ensure code quality, consistency, and security. All development tools are listed in `requirements-dev.txt`.
+All development tools are listed in `requirements-dev.txt`.
 
-### Running Unit Tests
+**Unit Tests (pytest)**: Run the full test suite. A pre-commit hook also runs this automatically.
 
-This project uses `pytest for unit testing. A pre-commit hook is also configured to run tests before each commit.
-
-To run the full test suite manually:
 ```bash
 pytest
 ```
 
-### Code Formatting
+**Code Formatting (black)**: Check for style issues or reformat files automatically.
 
-The codebase is formatted using `black`.
-
-To check for formatting issues:
 ```bash
-# Check for formatting issues
 black --check .
-
-# Automatically reformat files
 black .
 ```
 
-### Security Scanning
+**Security Scanning (bandit)**: Scan the application code for vulnerabilities.
 
-A static security analysis is performed using bandit.
-
-To run the scanner on the application code (excluding tests and dependencies):
-```
+```bash
 bandit -r . -x ./env,./tests
 ```
+
 ---
 
 ## Automated Deployment to Google Cloud Run
 
-This project is configured for automated deployment to Google Cloud Run via GitHub Actions.
-
 ### 1. Prerequisites
 
-- A Google Cloud Platform (GCP) project
-- A Docker Hub account
+- A Google Cloud Platform (GCP) project.
+- A Docker Hub account.
 
 ### 2. Google Cloud Setup
 
-#### Enable APIs
+**Enable APIs**: In your GCP project, enable the Cloud Run Admin API, Cloud SQL Admin API, and Compute Engine API.
 
-In your GCP project, enable the following APIs:
-- Cloud Run Admin API
-- Cloud SQL Admin API
-- Compute Engine API
+**Create a PostgreSQL Instance (Cloud SQL)**:
 
-#### Create a PostgreSQL Database
+- Create a new PostgreSQL 17 instance.
+- Set a strong password for the postgres user and save it.
+- Under Connections, enable Public IP and add `0.0.0.0/0` as an authorized network.
+- After the instance is created, go to its Databases tab and create a new database named exactly `marginal-wallet`.
 
-1. Go to **Cloud SQL** and create a new PostgreSQL 17 instance.
-2. Set a strong password for the `postgres` user. Save this password.
-3. Under **Connections**, enable **Public IP** and add `0.0.0.0/0` as an authorized network.
-4. Once the instance is created, go to the **Databases** tab and create a new database named `marginal-wallet`.
+**Create a Service Account**:
 
-#### Create a Service Account
-
-1. Go to **IAM & Admin** → **Service Accounts**.
-2. Create a new service account (e.g., `github-actions-deployer`).
-3. Grant it the following roles:
-   - **Cloud Run Admin**
-   - **Cloud SQL Client**
-4. After creating it, go to the **Keys** tab for the service account, create a new JSON key, and download it.
+- Go to IAM & Admin → Service Accounts and create a new account.
+- Grant it the roles: Cloud Run Admin and Cloud SQL Client.
+- Create and download a JSON key for this service account.
 
 ### 3. GitHub Repository Configuration
 
-Navigate to your repository's **Settings** → **Secrets and variables** → **Actions** and add the following secrets:
+Navigate to your repository's **Settings → Secrets and variables → Actions** and add the following secrets:
 
 | Secret Name | Description |
 |-------------|-------------|
@@ -286,4 +270,10 @@ Navigate to your repository's **Settings** → **Secrets and variables** → **A
 
 ### 4. Trigger Deployment
 
-The deployment workflow will run automatically on every push or merge to the `main` branch.
+The deployment workflow will run automatically on every push or merge to the main branch.
+
+---
+
+## Automated Deployment to AWS EC2
+
+(Wip)
