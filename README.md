@@ -1,3 +1,5 @@
+[![CI/CD Pipeline Status](https://github.com/VeronicaLobos/marginal_wallet_mvp/actions/workflows/cicd.yml/badge.svg)](https://github.com/VeronicaLobos/marginal_wallet_api/actions)
+
 # Marginal Wallet API
 
 Marginal Wallet is a robust RESTful API designed to help users manage their personal finances, with a focus on tracking non-fixed income and expenses. Built with Python and FastAPI, it provides a secure and feature-rich backend for a personal finance application.
@@ -184,6 +186,7 @@ uvicorn main:app --reload
 
 The application will be available at http://localhost:8000.
 
+https://marginal-wallet-api-774137592559.us-central1.run.app/docs
 ---
 
 ## Running with Docker
@@ -217,7 +220,9 @@ pytest
 **Code Formatting (black)**: Check for style issues or reformat files automatically.
 
 ```bash
+# Check for formatting issues
 black --check .
+# Automatically reformat files
 black .
 ```
 
@@ -238,21 +243,43 @@ bandit -r . -x ./env,./tests
 
 ### 2. Google Cloud Setup
 
-**Enable APIs**: In your GCP project, enable the Cloud Run Admin API, Cloud SQL Admin API, and Compute Engine API.
+**Step 1. Create a Google Cloud Project**:
+- Go to the Google Cloud Console and sign in.
+- In the top menu bar, click the project selector dropdown and then click New Project.
+- Give your project a unique name (e.g., marginal-wallet-production) and link a billing account.
 
-**Create a PostgreSQL Instance (Cloud SQL)**:
+**Step 2. Enable APIs**
+In your new GCP project, enable the following APIs:
+· Cloud Run Admin API
+· Cloud SQL Admin API
+· Compute Engine API
 
+**Step 3. Create a PostgreSQL Instance (Cloud SQL)**:
 - Create a new PostgreSQL 17 instance.
 - Set a strong password for the postgres user and save it.
 - Under Connections, enable Public IP and add `0.0.0.0/0` as an authorized network.
 - After the instance is created, go to its Databases tab and create a new database named exactly `marginal-wallet`.
 
-**Create a Service Account**:
-
+**Step 4. Create a Service Account**:
 - Go to *IAM & Admin* → *Service Accounts* and create a new account (e.g., `github-actions-deployer`).
 - Grant it the role *Cloud Run Admin*.
 - Go to the IAM main page, find the *Compute Engine default service account* (`<PROJECT_NUMBER>-compute@...`), and grant your `github-actions-deployer` account the *Service Account User* role on it. This is required for your deployer to act on behalf of the service that runs the container.
 - Create and download a *JSON key* for your `github-actions-deployer` service account.
+
+**Step 5. Managing Costs (Important!)**:
+To avoid incurring charges, stop your Cloud SQL instance when you are not actively using the deployed application.
+- Go to the [Cloud SQL Instances](https://console.cloud.google.com/sql/instances) page, select your instance, and click Stop.
+- Remember to manually Start the instance before running the deployment workflow again.
+- Alternatively you can use the CLI:
+```bash
+# To stop the instance
+gcloud sql instances patch marginal-wallet-db --activation-policy NEVER
+# To start the instance
+gcloud sql instances patch marginal-wallet-db --activation-policy ALWAYS
+```
+**Note**: The Cloud Run service itself scales to zero automatically and incurs no cost when idle. You only need to manage the database instance.
+
+Once you deploy your application successfully, you will be able to access it from a Service URL, e.g.: `https://marginal-wallet-api-774137592559.us-central1.run.app/`
 
 ### 3. GitHub Repository Configuration
 
