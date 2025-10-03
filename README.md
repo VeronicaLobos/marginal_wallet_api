@@ -420,7 +420,11 @@ Then run `terraform plan` and `terraform apply --auto-approve` to create the VPC
 
 
 ### Phase 3: Building the RDS Database Module
+The RDS module creates a managed PostgreSQL database instance within the private subnets of the VPC. It includes:
+- An RDS DB instance
+- A DB subnet group
+- A security group allowing access from the ECS tasks
 
-
+Run `terraform plan` and `terraform apply --auto-approve` to create the RDS resources.
 
 ---

@@ -21,3 +21,17 @@ module "vpc" {
   environment        = var.environment
   availability_zones = var.availability_zones
 }
+
+# Call the RDS Module
+# This tells Terraform to build a database inside our new network.
+module "rds" {
+  source = "../../modules/rds" # Path to the module
+
+  # Pass variables to the module
+  project_name       = var.project_name
+  environment        = var.environment
+  vpc_id             = module.vpc.vpc_id           # Use output from the VPC module
+  vpc_cidr_block     = module.vpc.vpc_cidr_block   # Use output from the VPC module
+  private_subnet_ids = module.vpc.private_subnet_ids # Place DB securely in private subnets
+  db_password        = var.db_password             # Pass the sensitive password variable
+}
