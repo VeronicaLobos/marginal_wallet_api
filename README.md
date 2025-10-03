@@ -46,19 +46,19 @@ The application is structured with a clear separation of features developed acro
 
 ## Tech Stack
 
-| Component | Technology |
-|-----------|--------------------------|
-| Backend | Python 3.12, FastAPI, Uvicorn, Gunicorn |
-| Database | PostgreSQL |
-| ORM & Data | SQLModel, SQLAlchemy, Pydantic |
-| Migrations | Alembic |
-| Authentication | JWT (PyJWT), OAuth2, Passlib (bcrypt) |
-| AI Integration | Google Gemini API |
-| Testing | Pytest, Bandit |
-| Formatting | Black |
-| Containerization | Docker, Docker Compose |
-| CI/CD | GitHub Actions |
-| Frontend | Jinja2 Templating, Bootstrap |
+| Component | Technology                                                                                                                                                                   |
+|-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Backend | `Python 3.12`, `FastAPI`. Served by `Uvicorn` for development and managed by `Gunicorn` with Uvicorn workers for production, providing a robust, multi-process architecture. |
+| Database | `PostgreSQL` for reliable relational data storage.                                                                                                                           |
+| ORM & Data | `SQLModel`, built on `SQLAlchemy` and `Pydantic` for type-safe database models and data validation.                                                                          |
+| Migrations | `Alembic` for managing database schema evolution.                                                                                                                            |
+| Authentication | `JWT` (PyJWT) and `OAuth2` for token-based security, with Passlib (bcrypt) for password hashing.                                                                             |
+| AI Integration | `Google Gemini API` for generating financial insights (endpoint).                                                                                                            |
+| Testing | `Pytest` for unit testing and `Bandit` for security scanning.                                                                                                                |
+| Formatting | `Black` for opinionated, consistent code formatting.                                                                                                                         |
+| Containerization | `Docker` and `Docker Compose for creating portable and reproducible application environments.                                                                                |
+| CI/CD | `GitHub Actions` for automating the entire testing and deployment workflow.                                                                                                  |
+| Frontend | `Jinja2` Templating, `Bootstrap` for a responsive UI prototype. Prototyping with Gemini CLI.                                                                                 |
 
 ---
 
@@ -200,6 +200,7 @@ Then, build and run the container:
 ```bash
 docker-compose up --build
 ```
+**Note on Ports**: The `compose.yaml` file maps port *8000* on your local machine to port *8080* inside the container. The application listens on the `$PORT` environment variable (defaulting to 8080), a best practice for compatibility with cloud platforms like Google Cloud Run.
 
 ---
 
@@ -248,9 +249,10 @@ bandit -r . -x ./env,./tests
 
 **Create a Service Account**:
 
-- Go to IAM & Admin → Service Accounts and create a new account.
-- Grant it the roles: Cloud Run Admin and Cloud SQL Client.
-- Create and download a JSON key for this service account.
+- Go to *IAM & Admin* → *Service Accounts* and create a new account (e.g., `github-actions-deployer`).
+- Grant it the role *Cloud Run Admin*.
+- Go to the IAM main page, find the *Compute Engine default service account* (`<PROJECT_NUMBER>-compute@...`), and grant your `github-actions-deployer` account the *Service Account User* role on it. This is required for your deployer to act on behalf of the service that runs the container.
+- Create and download a *JSON key* for your `github-actions-deployer` service account.
 
 ### 3. GitHub Repository Configuration
 
