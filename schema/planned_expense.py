@@ -20,7 +20,7 @@ from schema.enums import CurrencyType, FrequencyType
 
 
 class PlannedExpenseBase(SQLModel):
-    aprox_date: date = Field(nullable=False)
+    approx_date: date = Field(nullable=False)
     value: float = Field(nullable=False)
     currency: CurrencyType = Field(nullable=False)
     frequency: FrequencyType = Field(nullable=False)
@@ -32,8 +32,7 @@ class PlannedExpenseCreate(PlannedExpenseBase):
 
 
 class PlannedExpenseUpdate(SQLModel):
-    # TODO: Correct the typo in the field name
-    aprox_date: Optional[date] = Field(default=None)
+    approx_date: Optional[date] = Field(default=None)
     value: Optional[float] = Field(default=None)
     currency: Optional[CurrencyType] = Field(default=None)
     frequency: Optional[FrequencyType] = Field(default=None)

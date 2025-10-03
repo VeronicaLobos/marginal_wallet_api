@@ -73,7 +73,7 @@ async def list_planned_expenses(
     statement = (
         select(PlannedExpense)
         .where(PlannedExpense.user_id == current_user.id)
-        .order_by(PlannedExpense.aprox_date)
+        .order_by(PlannedExpense.approx_date)
         .offset(skip)
         .limit(limit)
     )

@@ -12,7 +12,7 @@ from schema.enums import CurrencyType, FrequencyType
 from schema.user import User
 
 PLANNED_EXPENSE_DATA = {
-    "aprox_date": "2025-07-01",
+    "approx_date": "2025-07-01",
     "value": 500.0,
     "currency": CurrencyType.usd.value,
     "frequency": FrequencyType.monthly.value,
@@ -39,7 +39,7 @@ def test_create_planned_expense_success(auth_client: TestClient, test_auth_user:
     assert response.status_code == 201
 
     response_data = response.json()
-    assert response_data["aprox_date"] == PLANNED_EXPENSE_DATA["aprox_date"]
+    assert response_data["approx_date"] == PLANNED_EXPENSE_DATA["approx_date"]
     assert response_data["value"] == PLANNED_EXPENSE_DATA["value"]
     assert response_data["currency"] == PLANNED_EXPENSE_DATA["currency"]
     assert response_data["frequency"] == PLANNED_EXPENSE_DATA["frequency"]
@@ -79,7 +79,7 @@ def test_get_planned_expense(auth_client: TestClient, test_auth_user: User):
     response = auth_client.get("/planned_expenses/1")
     assert response.status_code == 200
     response_data = response.json()
-    assert response_data["aprox_date"] == PLANNED_EXPENSE_DATA["aprox_date"]
+    assert response_data["approx_date"] == PLANNED_EXPENSE_DATA["approx_date"]
 
 
 def test_update_planned_expense(auth_client: TestClient, test_auth_user: User):
