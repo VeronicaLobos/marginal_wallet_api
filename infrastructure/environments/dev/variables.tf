@@ -1,13 +1,6 @@
 # /infrastructure/environments/dev/variables.tf
 
-# This file defines the specific values for the 'dev' environment variables.
-
-variable "aws_region" {
-  description = "The AWS region to deploy resources in."
-  type        = string
-  default     = "us-east-1"
-}
-
+# General variables for the dev environment
 variable "project_name" {
   description = "The name of the project."
   type        = string
@@ -15,19 +8,39 @@ variable "project_name" {
 }
 
 variable "environment" {
-  description = "The environment name."
+  description = "The deployment environment."
   type        = string
   default     = "dev"
 }
 
+variable "aws_region" {
+  description = "The AWS region to deploy to."
+  type        = string
+  default     = "us-east-1"
+}
+
+# Variable for the VPC module
 variable "availability_zones" {
-  description = "A list of availability zones for the VPC subnets."
+  description = "A list of availability zones to use for the VPC subnets."
   type        = list(string)
   default     = ["us-east-1a", "us-east-1b"]
+}
+
+# RDS specific variables
+variable "db_name" {
+  description = "The name of the RDS database."
+  type        = string
+  default     = "marginal_wallet"
+}
+
+variable "db_username" {
+  description = "The master username for the RDS database."
+  type        = string
+  default     = "postgres"
 }
 
 variable "db_password" {
   description = "The master password for the RDS database."
   type        = string
-  sensitive   = true
+  sensitive   = true # This prevents Terraform from showing the password in logs
 }
