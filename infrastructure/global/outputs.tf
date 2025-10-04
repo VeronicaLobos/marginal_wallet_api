@@ -1,10 +1,12 @@
-# This file defines the outputs from our global resources, such as the ARNs
-# of the IAM roles we create. These outputs can then be used by our
-# environment-specific configurations (dev, staging, prod).
+# This file exports the ARNs (Amazon Resource Names) of the IAM roles
+# created in iam.tf, so they can be used by other modules.
 
-# We will add outputs here once we apply the IAM resources.
-# Example:
-# output "ecs_task_execution_role_arn" {
-#   description = "The ARN of the ECS task execution role."
-#   value       = aws_iam_role.ecs_task_execution_role.arn
-# }
+output "ecs_task_execution_role_arn" {
+  description = "The ARN of the IAM role that allows ECS to manage resources."
+  value       = aws_iam_role.ecs_task_execution_role.arn
+}
+
+output "ecs_task_role_arn" {
+  description = "The ARN of the IAM role for the application running in the task."
+  value       = aws_iam_role.ecs_task_role.arn
+}
