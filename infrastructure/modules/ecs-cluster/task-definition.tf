@@ -1,39 +1,28 @@
-# This file defines the "job description" for a single instance of our
-# application container. It specifies the Docker image, resources, ports,
-# environment variables, and IAM roles.
+# This file defines the "job description" for the application container.
 
 resource "aws_ecs_task_definition" "main" {
   family                   = "${var.project_name}-${var.environment}-task"
   network_mode             = "awsvpc" # Required for ECS on EC2 with ALB
   requires_compatibilities = ["EC2"]
-  cpu                      = "256" # 0.25 vCPU
-  memory                   = "512" # 512 MB
+  cpu                      = "256"  # 1/4 of a vCPU
+  memory                   = "512"  # 512 MB
+  execution_role_arn       = var.ecs_task_execution_role_arn
+  task_role_arn            = var.ecs_task_role_arn
 
-  # These are the IAM roles (the "ID cards") the task will use.
-  task_role_arn            = var.ecs_task_role_arn            # For the application code
-  execution_role_arn       = var.ecs_task_execution_role_arn  # For the ECS agent (setup crew)
-
-  # This is the core of the task definition: the container itself.
   container_definitions = jsonencode([
     {
       name      = "${var.project_name}-${var.environment}-container",
-      image     = var.ecr_repository_url, # The Docker image to run
+      image     = var.ecr_repository_url,
       essential = true,
-
-      # Map the container's port (8080) so the load balancer can find it.
       portMappings = [
         {
-          containerPort = 8080,
-          hostPort      = 8080,
-          protocol      = "tcp"
+          containerPort = 8080, # The port your application listens on
+          hostPort      = 8080
         }
       ],
-
-      # This is the secure way to handle environment variables.
-      # Instead of passing the values directly, we pass the ARNs of the secrets
-      # stored in AWS Secrets Manager. The ECS agent, using the execution role,
-      # will fetch these secrets and inject them as environment variables
-      # just before the container starts.
+      # This is the most important part for security.
+      # Instead of defining environment variables directly, we tell the ECS agent
+      # to fetch them from AWS Secrets Manager at runtime.
       secrets = [
         {
           name      = "DATABASE_URL",
@@ -56,8 +45,6 @@ resource "aws_ecs_task_definition" "main" {
           valueFrom = var.app_google_api_key_arn
         }
       ],
-
-      # Configure logging to send container output to AWS CloudWatch.
       logConfiguration = {
         logDriver = "awslogs",
         options = {
@@ -70,8 +57,7 @@ resource "aws_ecs_task_definition" "main" {
   ])
 
   tags = {
-    Name    = "${var.project_name}-${var.environment}-task-def"
-    Project = var.project_name
+    Name = "${var.project_name}-${var.environment}-task-def"
   }
 }
 

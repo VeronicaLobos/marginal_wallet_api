@@ -1,4 +1,4 @@
-# This file defines the input variables for the global module.
+# /infrastructure/global/variables.tf
 
 variable "aws_region" {
   description = "The AWS region where resources will be created."
@@ -6,7 +6,7 @@ variable "aws_region" {
 }
 
 variable "project_name" {
-  description = "The overall name for the project, used to prefix resource names."
+  description = "The overall name for the project."
   type        = string
 }
 
@@ -14,3 +14,4 @@ variable "environment" {
   description = "The deployment environment (e.g., dev, staging, prod)."
   type        = string
 }
+

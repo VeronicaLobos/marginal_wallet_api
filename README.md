@@ -355,8 +355,7 @@ aws sts get-caller-identity
 ```
 You should see your AWS account details.
 
-### Phase 1 - Setting Up the Terraform Project Structure
-
+### Phase 0 - Setting Up the Terraform Project Structure
  · Project Structure
 The Terraform configurations are organized into a modular structure to promote reusability and maintainability.
 - `infrastructure/global`: Contains resources shared across all environments, such as the S3 bucket and DynamoDB table for Terraform state management.
@@ -405,26 +404,27 @@ terraform apply --auto-approve
 ```
 This command builds the infrastructure defined in the code.
 
-
-### Phase 2 - Building the Network (VPC Module).
-
-#### Step 1 - VPC Module
+### Phase 1 - Building the Network (VPC Module).
 The VPC module creates a Virtual Private Cloud (VPC) with:
 - A Virtual Private Cloud (VPC)
 - Public subnets (load balancer)
 - Private subnets (ECS tasks and RDS instance)
 - Internet Gateway and Route Tables for routing traffic to/from the internet
-
-Once the files are filled out, run `terraform apply` to create the VPC and subnets.
 Then run `terraform plan` and `terraform apply --auto-approve` to create the VPC and subnets.
 
-
-### Phase 3: Building the RDS Database Module
+### Phase 2: Building the RDS Database Module
 The RDS module creates a managed PostgreSQL database instance within the private subnets of the VPC. It includes:
 - An RDS DB instance
 - A DB subnet group
 - A security group allowing access from the ECS tasks
-
 Run `terraform plan` and `terraform apply --auto-approve` to create the RDS resources.
 
----
+### Phase 3: Build the Container Registry (ECR)
+This creates a private Docker container registry to store your application image.
+Run `terraform plan` and `terraform apply --auto-approve` to create the ECR repository.
+
+### Phase 4: Build the Compute Layer (ECS, ALB, IAM)
+This is the final and largest phase. It builds the Application Load Balancer, the ECS Cluster, the EC2 instances, and all the necessary IAM roles and secrets.
+Run `terraform plan` and `terraform apply --auto-approve` to create the ECS resources.
+
+### Phase 5: Deploy the Application

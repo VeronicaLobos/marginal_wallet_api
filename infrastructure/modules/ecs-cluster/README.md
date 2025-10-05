@@ -1,3 +1,108 @@
+# Terraform AWS ECS Cluster Module (EC2 Launch Type)
+
+This module provisions a complete, production-ready ECS Cluster on AWS using the EC2 launch type. It is designed to be a reusable component for running containerized applications.
+
+## Resources Created
+
+The module creates the following core resources:
+
+- **ECS Cluster** - Manages tasks and services
+- **EC2 Launch Template** - Defines the configuration for the cluster's virtual servers, including the ECS-optimized AMI and the necessary IAM role
+- **Auto Scaling Group (ASG)** - Manages the fleet of EC2 instances, ensuring the desired number of servers are always running and healthy across multiple Availability Zones
+- **Security Group** - For the EC2 instances, with rules to allow traffic from the Application Load Balancer and to the RDS database
+- **ECS Task Definition** - Acts as a blueprint for the application container, defining the Docker image, resource limits, and environment variables sourced securely from AWS Secrets Manager
+- **ECS Service** - Maintains the desired number of running tasks (containers) and registers them with the Application Load Balancer
+
+## Usage
+
+This module is called from an environment-specific configuration (e.g., `environments/dev/main.tf`). You must provide it with information from your VPC, ALB, ECR, and global IAM modules.
+
+```hcl
+module "ecs_cluster" {
+  source = "../../modules/ecs-cluster"
+
+  # General Info
+  project_name = var.project_name
+  environment  = var.environment
+  aws_region   = var.aws_region
+
+  # Networking
+  vpc_id             = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnet_ids
+
+  # EC2 Configuration
+  instance_type    = var.instance_type
+  min_size         = var.min_size
+  max_size         = var.max_size
+  desired_capacity = var.desired_capacity
+  ec2_key_name     = var.ec2_key_name
+  ami_id           = data.aws_ami.ecs_optimized_linux.id
+
+  # ALB & RDS Integration
+  alb_security_group_id = module.alb.alb_security_group_id
+  rds_security_group_id = module.rds.rds_security_group_id
+  target_group_arn      = module.alb.target_group_arn
+  alb_listener          = module.alb.alb_listener_arn # Note: Pass the ARN here for dependency
+
+  # IAM Roles
+  ecs_instance_profile_name   = module.global.ecs_instance_profile_name
+  ecs_task_execution_role_arn = module.global.ecs_task_execution_role_arn
+  ecs_task_role_arn           = module.global.ecs_task_role_arn
+
+  # ECR Image
+  ecr_repository_url = module.ecr.repository_url
+
+  # Secrets from AWS Secrets Manager
+  db_url_secret_arn        = module.rds.db_url_secret_arn
+  app_secret_key_arn       = module.global.app_secret_key_arn
+  app_algorithm_arn        = module.global.app_algorithm_arn
+  app_token_expire_arn     = module.global.app_token_expire_arn
+  app_google_api_key_arn   = module.global.app_google_api_key_arn
+}
+```
+
+## Inputs
+
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|----------|
+| project_name | The name of the project | `string` | n/a | yes |
+| environment | The deployment environment (e.g., dev, staging, prod) | `string` | n/a | yes |
+| aws_region | The AWS region where resources are deployed | `string` | n/a | yes |
+| vpc_id | The ID of the VPC where the cluster will be deployed | `string` | n/a | yes |
+| private_subnet_ids | A list of private subnet IDs for the ECS tasks | `list(string)` | n/a | yes |
+| instance_type | The EC2 instance type for the ECS cluster nodes | `string` | n/a | yes |
+| min_size | The minimum number of EC2 instances in the Auto Scaling Group | `number` | n/a | yes |
+| max_size | The maximum number of EC2 instances in the Auto Scaling Group | `number` | n/a | yes |
+| desired_capacity | The desired number of EC2 instances to run | `number` | n/a | yes |
+| ec2_key_name | The name of the EC2 key pair for SSH access (optional) | `string` | `null` | no |
+| ami_id | The ID of the Amazon Machine Image (AMI) to use for the EC2 instances | `string` | n/a | yes |
+| alb_security_group_id | The ID of the security group for the Application Load Balancer | `string` | n/a | yes |
+| rds_security_group_id | The ID of the security group for the RDS database instance | `string` | n/a | yes |
+| target_group_arn | The ARN of the ALB target group for the ECS service | `string` | n/a | yes |
+| alb_listener_arn | The ARN of the ALB listener to create a dependency | `string` | n/a | yes |
+| ecs_instance_profile_name | The name of the IAM instance profile for the EC2 instances | `string` | n/a | yes |
+| ecs_task_execution_role_arn | The ARN of the IAM role for ECS task execution | `string` | n/a | yes |
+| ecs_task_role_arn | The ARN of the IAM role for the application task | `string` | n/a | yes |
+| ecr_repository_url | The URL of the ECR repository where the application image is stored | `string` | n/a | yes |
+| db_url_secret_arn | The ARN of the secret containing the full database URL | `string` | n/a | yes |
+| app_secret_key_arn | The ARN of the secret for the application's SECRET_KEY | `string` | n/a | yes |
+| app_algorithm_arn | The ARN of the secret for the application's ALGORITHM | `string` | n/a | yes |
+| app_token_expire_arn | The ARN of the secret for ACCESS_TOKEN_EXPIRE_MINUTES | `string` | n/a | yes |
+| app_google_api_key_arn | The ARN of the secret for the GOOGLE_API_KEY | `string` | n/a | yes |
+
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| ecs_cluster_name | The name of the created ECS cluster |
+
+## Requirements
+
+- Terraform >= 1.0
+- AWS Provider
+- Existing VPC, ALB, RDS, and IAM infrastructure modules
+
+---
 # Phase5: Infrastructure as Code for FastAPI Application on AWS ECS with EC2 Launch Type
 This phase focuses on setting up the necessary infrastructure for deploying a FastAPI application using AWS ECS with the EC2 launch type. We will use Terraform to define and manage our infrastructure as code.
 This phase is the most complex and involves multiple steps to ensure that all components are correctly configured and integrated.
@@ -21,9 +126,9 @@ We will create a new module for the ECS cluster that includes all the necessary 
 
 Update `infrastructure/environments/dev/` files:
 The final step will be to update the files in environments/dev/ to call this new ECS module and connect all the pieces together.
-* Step 5c.1: Update the `main.tf` to include the ECS cluster module (the "master plan")
-* Step 5c.2: Update the `variables.tf` to include the necessary variables (the "settings panel")
-* Step 5c.3: Update the `outputs.tf` to include outputs from the ECS cluster module (the "final output")
+* [Step 5c.1](#phase-5c-step-1-of-3-update-the-maintf-to-include-the-ecs-cluster-module): Update the `main.tf` to include the ECS cluster module (the "master plan")
+* [Step 5c.2](#phase-5c-step-2-of-3-update-the-variablestf-to-include-the-necessary-variables): Update the `variables.tf` to include the necessary variables (the "settings panel")
+* [Step 5c.3](#phase-5c-step-3-of-3-update-the-outputstf-to-include-outputs-from-the-ecs-cluster-module): Update the `outputs.tf` to include outputs from the ECS cluster module (the "final output")
 
 ---
 ## Phase 5a, Step 1 of 3: Create the Global Secrets in AWS Secrets Manager

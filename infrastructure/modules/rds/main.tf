@@ -1,35 +1,30 @@
-# /infrastructure/modules/rds/main.tf
+# This module creates a secure, private RDS PostgreSQL instance.
 
-# This Terraform module provisions an AWS RDS instance along with a
-# corresponding database subnet group and security group.
-
-# 1. Database Subnet Group: Tells RDS which subnets it is allowed to live in.
-# We will place our database in the private subnets for security.
+# 1. DB Subnet Group: A list of approved private subnets where the DB can exist.
 resource "aws_db_subnet_group" "main" {
   name       = "${var.project_name}-${var.environment}-rds-sng"
-  subnet_ids = var.private_subnet_ids # Input from the VPC module
-
+  subnet_ids = var.private_subnet_ids
   tags = {
     Name = "${var.project_name}-${var.environment}-rds-sng"
   }
 }
 
-# 2. RDS Security Group: Acts as a virtual firewall for the database.
+# 2. Security Group: The firewall for the database.
 resource "aws_security_group" "rds" {
   name        = "${var.project_name}-${var.environment}-rds-sg"
   description = "Allow inbound traffic from the application"
-  vpc_id      = var.vpc_id # Input from the VPC module
+  vpc_id      = var.vpc_id
 
-  # Ingress Rule: Allow PostgreSQL traffic (port 5432) only from within the VPC.
-  # We will later refine this to only allow traffic from the ECS tasks' security group.
+  # Ingress (Inbound) Rule: Allow PostgreSQL traffic (port 5432) ONLY from
+  # within the same VPC. We will later add a specific rule from the ECS tasks.
   ingress {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr_block] # Allows traffic from anywhere inside the VPC
+    cidr_blocks = [var.vpc_cidr_block] # Allows access from anywhere inside the VPC
   }
 
-  # Egress Rule: Allow all outbound traffic.
+  # Egress (Outbound) Rule: Allow all outbound traffic.
   egress {
     from_port   = 0
     to_port     = 0
@@ -42,23 +37,40 @@ resource "aws_security_group" "rds" {
   }
 }
 
-# 3. RDS Database Instance: The actual PostgreSQL database.
+# 3. The RDS Database Instance
 resource "aws_db_instance" "main" {
   identifier           = "${var.project_name}-${var.environment}-rds"
   engine               = "postgres"
-  engine_version       = "16.3" # Latest stable version
-  instance_class       = var.db_instance_class # Free Tier eligible: "db.t3.micro"
+  engine_version       = "16.3"
+  instance_class       = "db.t3.micro" # Free Tier eligible
   allocated_storage    = 20
   storage_type         = "gp2"
-  username             = var.db_username
-  password             = var.db_password # Securely passed in as a variable
   db_name              = var.db_name
+  username             = var.db_username
+  password             = var.db_password
   db_subnet_group_name = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
-  skip_final_snapshot  = true # Important for dev/testing to allow easy deletion
-  publicly_accessible  = false # Crucial for security - only accessible from within the VPC
+  publicly_accessible  = false
+  skip_final_snapshot  = true
+  apply_immediately    = false
 
   tags = {
     Name = "${var.project_name}-${var.environment}-rds-instance"
   }
+}
+
+# 4. Create a secret in Secrets Manager for the full database URL.
+resource "aws_secretsmanager_secret" "db_url" {
+  name = "${var.project_name}-${var.environment}-db-url"
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+  }
+}
+
+# 5. Populate that secret with the database connection string.
+resource "aws_secretsmanager_secret_version" "db_url_value" {
+  secret_id     = aws_secretsmanager_secret.db_url.id
+  secret_string = "postgresql://${var.db_username}:${var.db_password}@${aws_db_instance.main.endpoint}/${var.db_name}"
 }
