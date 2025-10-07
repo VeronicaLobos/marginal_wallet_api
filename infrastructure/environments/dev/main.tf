@@ -98,7 +98,7 @@ module "ecs_cluster" {
   ecs_task_role_arn           = module.global.ecs_task_role_arn
 
   # ECR Image & Container Port
-  ecr_repository_url = module.ecr.repository_url
+  ecr_repository_url = "${module.ecr.repository_url}:${var.image_tag}"
   container_port     = var.container_port
 
   # Secrets from global and rds modules

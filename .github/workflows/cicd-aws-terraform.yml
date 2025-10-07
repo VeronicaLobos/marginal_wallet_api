@@ -1,0 +1,120 @@
+# .github/workflows/cicd-aws.yml
+
+name: CI/CD Pipeline - AWS
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  # --- CI Jobs (Run on every push and PR) ---
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install and Run Tests
+        run: |
+          pip install -r requirements-dev.txt
+          pytest
+        env:
+          DATABASE_URL: "sqlite:///./test.db"
+          SECRET_KEY: "a-test-secret-key"
+          ALGORITHM: "HS256"
+
+  style:
+    name: Check Code Style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install and Run Black
+        run: |
+          pip install -r requirements-dev.txt
+          black --check .
+
+  security:
+    name: Run Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install and Run Bandit
+        run: |
+          pip install -r requirements-dev.txt
+          bandit -r . -x ./env,./tests
+
+  # --- CD Job (Run only on push to main) ---
+  deploy-to-aws:
+    name: Deploy to AWS
+    needs: [test, style, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required for OIDC authentication with AWS
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image to ECR
+        id: build-image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/marginal-wallet-dev-ecr:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/marginal-wallet-dev-ecr:latest
+          platforms: linux/amd64 # Build for the correct server architecture
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./infrastructure/environments/dev
+
+      - name: Terraform Plan
+        run: terraform plan -var="image_tag=${{ github.sha }}"
+        working-directory: ./infrastructure/environments/dev
+        env:
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -var="image_tag=${{ github.sha }}"
+        working-directory: ./infrastructure/environments/dev
+        env:
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+
+      - name: Force ECS Service Update
+        run: |
+          aws ecs update-service \
+            --cluster marginal-wallet-dev-cluster \
+            --service marginal-wallet-dev-service \
+            --force-new-deployment

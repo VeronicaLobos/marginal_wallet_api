@@ -81,3 +81,9 @@ variable "container_port" {
   type        = number
   default     = 8080
 }
+
+variable "image_tag" {
+  description = "The Docker image tag to deploy"
+  type        = string
+  default     = "latest"
+}
