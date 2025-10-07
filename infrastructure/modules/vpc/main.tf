@@ -75,3 +75,47 @@ resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public.id
 }
+
+# --- NAT Gateway for Private Subnet Outbound Access ---
+
+# 7. An Elastic IP (a permanent public IP address) for our NAT Gateway.
+resource "aws_eip" "nat" {
+  domain = "vpc"
+  tags = {
+    Name = "${var.project_name}-${var.environment}-nat-eip"
+  }
+}
+
+# 8. The NAT Gateway itself. It must live in a public subnet.
+resource "aws_nat_gateway" "main" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public[0].id # Place it in the first public subnet
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-nat-gw"
+  }
+
+  depends_on = [aws_internet_gateway.main]
+}
+
+# 9. The Private Route Table (the "GPS for private rooms")
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.main.id # All outbound traffic goes to the NAT Gateway
+  }
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-private-rt"
+  }
+}
+
+# 10. Associate the Private Route Table with the Private Subnets
+resource "aws_route_table_association" "private" {
+  count          = length(aws_subnet.private)
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private.id
+}
+

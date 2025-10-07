@@ -89,6 +89,10 @@ variable "ecr_repository_url" {
   description = "The URL of the ECR repository where the application image is stored."
   type        = string
 }
+variable "container_port" {
+  description = "The port the application container listens on."
+  type        = number
+}
 
 # --- Secrets (ARNs from Global & RDS modules) ---
 variable "db_url_secret_arn" {
@@ -111,4 +115,3 @@ variable "app_google_api_key_arn" {
   description = "The ARN of the secret for the GOOGLE_API_KEY."
   type        = string
 }
-

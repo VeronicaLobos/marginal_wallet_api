@@ -1,5 +1,3 @@
-# /infrastructure/modules/vpc/variables.tf
-
 # This file defines the "inputs" for our VPC module. These are the settings
 # we can customize each time we use this module.
 
@@ -23,3 +21,4 @@ variable "availability_zones" {
   description = "A list of availability zones to create subnets in."
   type        = list(string)
 }
+

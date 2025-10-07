@@ -1,21 +1,68 @@
-# Resources created by Terraform in the RDS Module
+# Terraform AWS RDS Module
 
-* aws_db_instance.main (1 resource)
+This Terraform module provisions a production-ready **Amazon Relational Database Service (RDS)** instance for PostgreSQL. It is designed to be deployed within a private network, ensuring the database is not exposed to the public internet.
 
-What it is: The managed PostgreSQL database instance (the "safe" where your data is stored).
+## Resources Created
 
-Analogy: This is the "safe" in your secure room where all your important data is stored. It's a fully managed database server that handles backups, patching, and scaling for you. It lives in the private subnets, so it's not directly accessible from the internet, greatly enhancing security.
- 
-* aws_db_subnet_group.main (1 resource)
+The module creates the following core resources:
 
-What it is: The DB subnet group (the "list of approved rooms" to install the safe).
+- **RDS DB Instance** (`aws_db_instance`) - The managed PostgreSQL database server. It is configured to be `t3.micro` for Free Tier eligibility and is not publicly accessible
+- **DB Subnet Group** (`aws_db_subnet_group`) - This tells RDS which private subnets within your VPC the database is allowed to be placed in, ensuring high availability across multiple Availability Zones
+- **Security Group** (`aws_security_group`) - Acts as a virtual firewall for the database, with a rule that only allows inbound traffic on the PostgreSQL port (5432) from within the VPC
+- **AWS Secrets Manager Secret** (`aws_secretsmanager_secret`) - A secure "lockbox" is created to store the database's full connection URL, which the application can then retrieve at runtime
 
-The Analogy: Imagine you're telling a security guard where they are allowed to place a valuable safe. You don't just say "put it somewhere in the house." You give them a specific list of approved, secure, internal rooms.
+## Usage
 
-The Explanation: A DB Subnet Group is exactly that: a list of approved private subnets. You are telling AWS, "When you create my RDS database, you are only allowed to place it within one of these specific subnets." This is a mandatory requirement for creating a database inside a VPC. It also ensures your database is highly available, as a subnet group must contain subnets in at least two different Availability Zones.
+This module is called from an environment-specific configuration (e.g., `environments/dev/main.tf`). It requires information from the VPC module to place itself correctly within the network.
 
-* aws_security_group.main (1 resource)
+```hcl
+module "rds" {
+  source = "../../modules/rds"
 
-What it is: The security group for the database (the firewall or "lock" to protect the safe).
+  project_name       = var.project_name
+  environment        = var.environment
+  vpc_id             = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnet_ids
+  vpc_cidr_block     = module.vpc.vpc_cidr_block
+  db_name            = var.db_name
+  db_username        = var.db_username
+  db_password        = var.db_password
+}
+```
 
-Analogy: This is the "lock" on your safe. It controls who can access the database and on which ports. In our case, we allow inbound traffic on port 5432 (the PostgreSQL port) only from resources within the VPC, ensuring that only trusted components can communicate with the database.
+## Inputs
+
+The following input variables are defined in `variables.tf`:
+
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|----------|
+| project_name | The name of the project, used to prefix resource names | `string` | n/a | yes |
+| environment | The deployment environment (e.g., dev, staging) | `string` | n/a | yes |
+| vpc_id | The ID of the VPC where the database will be deployed | `string` | n/a | yes |
+| private_subnet_ids | A list of private subnet IDs for the DB Subnet Group | `list(string)` | n/a | yes |
+| vpc_cidr_block | The CIDR block of the VPC, used for the security group rule | `string` | n/a | yes |
+| db_name | The name of the database to create in the instance | `string` | n/a | yes |
+| db_username | The master username for the database | `string` | n/a | yes |
+| db_password | The master password for the database | `string` | n/a | yes |
+
+## Outputs
+
+The following outputs are defined in `outputs.tf`:
+
+| Name | Description |
+|------|-------------|
+| rds_endpoint | The connection endpoint for the database instance |
+| rds_security_group_id | The ID of the security group attached to the RDS instance |
+| db_url_secret_arn | The ARN of the secret that stores the full database connection URL |
+
+## Security Notes
+
+- The database is **not publicly accessible** and is deployed in private subnets
+- Database credentials are securely stored in AWS Secrets Manager
+- Security group restricts access to port 5432 from within the VPC only
+
+## Requirements
+
+- Terraform >= 1.0
+- AWS Provider
+- Existing VPC with private subnets

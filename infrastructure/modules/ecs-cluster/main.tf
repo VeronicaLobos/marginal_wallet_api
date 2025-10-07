@@ -40,7 +40,7 @@ resource "aws_launch_template" "main" {
 # This is the "HR department" that ensures we have the correct number of EC2
 # instances running, based on the launch template.
 resource "aws_autoscaling_group" "main" {
-  name_prefix = "${var.project_name}-${var.environment}-asg"
+  name_prefix         = "${var.project_name}-${var.environment}-asg"
   vpc_zone_identifier = var.private_subnet_ids
 
   launch_template {
@@ -57,6 +57,8 @@ resource "aws_autoscaling_group" "main" {
     value               = "${var.project_name}-${var.environment}-ecs-instance"
     propagate_at_launch = true
   }
+
+  # NOTE: The incorrect depends_on block has been removed from here.
 }
 
 # 4. Capacity Provider
@@ -66,7 +68,7 @@ resource "aws_ecs_capacity_provider" "main" {
   name = "${var.project_name}-${var.environment}-cp"
 
   auto_scaling_group_provider {
-    auto_scaling_group_arn         = aws_autoscaling_group.main.arn
+    auto_scaling_group_arn = aws_autoscaling_group.main.arn
     managed_scaling {
       status          = "ENABLED"
       target_capacity = 100
@@ -84,4 +86,3 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
     capacity_provider = aws_ecs_capacity_provider.main.name
   }
 }
-

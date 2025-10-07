@@ -427,4 +427,28 @@ Run `terraform plan` and `terraform apply --auto-approve` to create the ECR repo
 This is the final and largest phase. It builds the Application Load Balancer, the ECS Cluster, the EC2 instances, and all the necessary IAM roles and secrets.
 Run `terraform plan` and `terraform apply --auto-approve` to create the ECS resources.
 
-### Phase 5: Deploy the Application
+### Phase 5: Manual configuration of AWS Secrets
+The application requires certain secrets to run, such as database credentials and JWT secret keys. These need to be created manually in the AWS Secrets Manager.
+* Step1. First, we need the address of the database you just created. Terraform has saved this for you as an output. From the infrastructure/environments/dev directory, run:
+```bash
+terraform output -raw rds_endpoint
+```
+Then you'll see the database endpoint printed. Copy it.
+* Step 2. Go to the AWS Console, navigate to Secrets Manager, and create a new secret of type "Other type of secret". Add the following key-value pairs:
+```bash
+aws secretsmanager put-secret-value --secret-id "marginal-wallet-dev-app-secret-key" --secret-string 'YOUR_SECRET_KEY_HERE'
+aws secretsmanager put-secret-value --secret-id "marginal-wallet-dev-app-algorithm" --secret-string 'HS***'
+aws secretsmanager put-secret-value --secret-id "marginal-wallet-dev-app-token-expire" --secret-string '30'
+aws secretsmanager put-secret-value --secret-id "marginal-wallet-dev-app-google-api-key" --secret-string 'YOUR_GOOGLE_API_KEY_HERE'
+```
+
+
+### Phase 6: Automated Deployment (the AWS CI/CD Pipeline)
+The CI/CD pipeline is defined in `.github/workflows/cicd-aws-terraform.yml`. It automates the following steps on every push to the main branch:
+- Build and push the Docker image to ECR.
+- Apply any pending database migrations using Alembic.
+- Update the ECS service to use the new image, triggering a rolling update of the tasks.
+- Run the pipeline by pushing a commit to the main branch.
+- Monitor the progress in the Actions tab of your GitHub repository.
+- Once complete, your application will be live on the internet.
+

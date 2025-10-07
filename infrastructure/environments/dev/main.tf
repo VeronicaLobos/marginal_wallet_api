@@ -1,4 +1,4 @@
-# This file defines the 'dev' environment by calling our reusable modules.
+# This file defines the 'dev' environment by calling all reusable modules.
 
 # --- Data Sources ---
 # Looks up the latest ECS-optimized Amazon Linux AMI ID.
@@ -13,7 +13,7 @@ data "aws_ami" "ecs_optimized_linux" {
 }
 
 # --- Global Resources ---
-# Calls the global module to create/reference shared resources like IAM roles and secrets.
+# Calls the global module to create/reference shared IAM roles and secrets.
 module "global" {
   source = "../../global"
 
@@ -29,6 +29,7 @@ module "vpc" {
   project_name       = var.project_name
   environment        = var.environment
   availability_zones = var.availability_zones
+  vpc_cidr           = "10.0.0.0/16"
 }
 
 # --- RDS Module ---
@@ -63,8 +64,8 @@ module "alb" {
   public_subnet_ids = module.vpc.public_subnet_ids
 }
 
-# --- ECS Cluster Module ---
-# This is the final assembly step, connecting all other modules.
+# --- ECS Cluster Module (Final Assembly) ---
+# This block connects all the other modules together.
 module "ecs_cluster" {
   source = "../../modules/ecs-cluster"
 
@@ -91,15 +92,16 @@ module "ecs_cluster" {
   target_group_arn      = module.alb.target_group_arn
   alb_listener          = module.alb.alb_listener
 
-  # IAM Roles
+  # IAM Roles from global module
   ecs_instance_profile_name   = module.global.ecs_instance_profile_name
   ecs_task_execution_role_arn = module.global.ecs_task_execution_role_arn
   ecs_task_role_arn           = module.global.ecs_task_role_arn
 
-  # ECR Image
+  # ECR Image & Container Port
   ecr_repository_url = module.ecr.repository_url
+  container_port     = var.container_port
 
-  # Secrets
+  # Secrets from global and rds modules
   db_url_secret_arn        = module.rds.db_url_secret_arn
   app_secret_key_arn       = module.global.app_secret_key_arn
   app_algorithm_arn        = module.global.app_algorithm_arn

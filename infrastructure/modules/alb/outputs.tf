@@ -1,4 +1,4 @@
-# /infrastructure/modules/alb/outputs.tf
+# This file defines the outputs of the ALB module.
 
 output "alb_dns_name" {
   description = "The DNS name of the Application Load Balancer."
@@ -16,9 +16,8 @@ output "alb_security_group_id" {
 }
 
 output "alb_listener" {
-  description = "The ARN of the ALB listener."
-  value       = aws_lb_listener.http.arn
+  description = "The ALB listener resource."
+  value       = aws_lb_listener.http
 }
-
 
 

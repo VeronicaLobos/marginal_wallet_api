@@ -1,37 +1,64 @@
-# Resources Created by Terraform in the VPC Module
+# Terraform AWS VPC Module
 
-* aws_vpc.main (1 resource)
+This Terraform module provisions a foundational **Amazon Virtual Private Cloud (VPC)**. It creates a logically isolated section of the AWS Cloud where you can launch AWS resources in a virtual network that you define.
 
-What it is: The Virtual Private Cloud (VPC).
+This module is the first and most critical building block of the infrastructure, creating a secure and highly available network environment.
 
-Analogy: This is the plot of land for your house. It's a completely isolated and private section of the AWS cloud that belongs only to you. All your other resources will be built inside this VPC.
+## Resources Created
 
-* aws_subnet.public (2 resources)
+The module creates the following core resources:
 
-What it is: Two public subnets, one in each availability zone (us-east-1a and us-east-1b).
+- **Virtual Private Cloud** (`aws_vpc`) - The main network container
+- **Public Subnets** (`aws_subnet`) - Two subnets distributed across different Availability Zones, intended for public-facing resources like the Application Load Balancer
+- **Private Subnets** (`aws_subnet`) - Two subnets also distributed across Availability Zones, intended for secure backend resources like the RDS database and ECS container instances
+- **Internet Gateway** (`aws_internet_gateway`) - The "front door" of the VPC, allowing communication between resources in the public subnets and the internet
+- **Public Route Table** (`aws_route_table`) - Provides a route to the Internet Gateway, which is then associated with the public subnets
 
-Analogy: These are the rooms in your house that have windows and doors to the outside world, like a foyer or a living room. We will place resources here that need to be accessible from the internet, like our load balancer. Creating two provides high availability in case one of AWS's data centers has an issue.
+## Usage
 
-* aws_subnet.private (2 resources)
+This module is called from an environment-specific configuration (e.g., `environments/dev/main.tf`) to create the network for that environment.
 
-What it is: Two private subnets, one in each availability zone.
+```hcl
+module "vpc" {
+  source = "../../modules/vpc"
 
-Analogy: These are the secure, windowless rooms in the center of your house, like a safe or a pantry. We will place our secure resources here, like the database, which should never be directly exposed to the internet.
+  project_name       = var.project_name
+  environment        = var.environment
+  availability_zones = var.availability_zones
+}
+```
 
-* aws_internet_gateway.main (1 resource)
+## Inputs
 
-What it is: The Internet Gateway (IGW).
+The following input variables are defined in `variables.tf`:
 
-Analogy: This is the single front door to your entire property. It's attached to the VPC and is the only way traffic can get from the internet into your network.
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|----------|
+| project_name | The name of the project, used to prefix resource names | `string` | n/a | yes |
+| environment | The deployment environment (e.g., dev, staging) | `string` | n/a | yes |
+| availability_zones | A list of two availability zones to use for the subnets | `list(string)` | n/a | yes |
 
-* aws_route_table.public (1 resource)
+## Outputs
 
-What it is: The public route table.
+The following outputs are defined in `outputs.tf`:
 
-Analogy: This is the "GPS" or the set of directions for your public rooms. It has one simple rule: "To get to the outside world (any address 0.0.0.0/0), go through the front door (the Internet Gateway)."
+| Name | Description |
+|------|-------------|
+| vpc_id | The ID of the created VPC |
+| public_subnet_ids | A list of IDs for the public subnets |
+| private_subnet_ids | A list of IDs for the private subnets |
+| vpc_cidr_block | The primary IPv4 CIDR block for the VPC |
 
-* aws_route_table_association.public (2 resources)
+## Architecture
 
-What it is: Two route table associations.
+This module creates a multi-AZ VPC architecture with the following design:
 
-Analogy: This is the "glue" that puts the directions (the route table) inside your public rooms (the subnets). It explicitly links the public route table to each of the public subnets, giving them a path to the internet.
+- **High Availability**: Resources are distributed across two Availability Zones
+- **Network Segmentation**: Separate public and private subnets for different resource types
+- **Internet Access**: Public subnets have direct internet access via the Internet Gateway
+
+## Requirements
+
+- Terraform >= 1.0
+- AWS Provider
+- Two availability zones in your chosen region
